@@ -98,7 +98,7 @@ export async function POST(request: Request) {
         select_product: '\ud83d\udce6 Qaysi mahsulotni tanlaysiz?',
         select_quantity: 'Nechta chiqim (yoki kirim) qilasiz?',
         back: '\u25c0\ufe0f Ortga', cancel: 'Bekor qilish',
-        also_found: 'Xuddi shunday yana {count} ta mahsulot bor. Aniq nomini yozing.',
+        also_found: 'Xuddi shunday yana {count} ta mahsulot bor. Aniq ismini yozing.',
         help_text: '\ud83e\udd16 *Bot buyruqlari:*\n\n/menu \u2014 \ud83d\udd79 Interaktiv boshqaruv menyusi\n/sklad \u2014 \ud83c\udfe2 Omborxonalar ro\'yxati\n\n\ud83d\udcdd Guruhda aniq mahsulot nomi yoki SKU bilan chiqim qiling.\nMasalan: "HP-CF217A 1ta"',
         operation_success: '\u2705 Operatsiya muvaffaqiyatli:'
       },

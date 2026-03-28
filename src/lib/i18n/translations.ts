@@ -328,6 +328,7 @@ export const translations = {
     analytics_desc: 'Sklad hisob-kitobida guruhdagi ishtirokchilarning amalga oshirgan ishlari haqida batafsil ma\'lumot.',
     clear_history: 'Tarixni tozalash',
     history_cleared: 'Amaliyotlar tarixi muvaffaqiyatli tozalandi!',
+    also_found: 'Xuddi shunday yana {count} ta mahsulot bor. Aniq ismini yozing.',
     
     // Bot Commands & Menu
     bot_commands_title: 'Bot Buyruqlari',
@@ -701,6 +702,7 @@ export const translations = {
     menu_updated: 'Меню бота успешно обновлено!',
     no_commands: 'Команд пока нет. Вы можете добавить новую.',
     cmd_description: 'Описание команды (Напр: Список складов)',
+    also_found: 'Также найдено ещё {count} товар(ов). Укажите точное название.',
 
     // Analytics
     total_operations: 'Всего операций',
@@ -1066,6 +1068,7 @@ export const translations = {
     error: 'Error',
     loading: 'Loading...',
     no_data: 'No data found',
+    also_found: 'There are also {count} more product(s) found. Please specify the exact name.',
   },
 }
 

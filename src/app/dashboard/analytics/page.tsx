@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { jsPDF } from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 import toast from 'react-hot-toast'
 
 export default function AnalyticsPage() {
@@ -79,13 +79,12 @@ export default function AnalyticsPage() {
         t.source
       ])
 
-      // @ts-ignore
-      doc.autoTable({
+      autoTable(doc, {
         startY: 40,
         head: [['Date', 'User', 'Product', 'SKU', 'Qty', 'Source']],
         body: tableData,
         theme: 'striped',
-        headStyles: { fillStyle: 'var(--primary)' }
+        styles: { font: 'helvetica' }
       })
 
       doc.save(`Analytics_${new Date().getTime()}.pdf`)

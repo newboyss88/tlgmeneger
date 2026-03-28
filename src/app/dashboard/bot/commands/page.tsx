@@ -142,14 +142,27 @@ export default function BotCommandsPage() {
                 fetchCommands(e.target.value)
               }}
            >
-              {bots.map((b: any) => (
-                <option key={b.id} value={b.id} className="bg-[var(--bg)]">{b.name} (@{b.username})</option>
-              ))}
-           </select>
-        </div>
+               {bots.length > 0 ? (
+                 bots.map((b: any) => (
+                   <option key={b.id} value={b.id} className="bg-[var(--bg)]">{b.name} (@{b.username})</option>
+                 ))
+               ) : (
+                 <option value="" disabled>Bot topilmadi</option>
+               )}
+            </select>
+         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {!selectedBotId && bots.length === 0 ? (
+        <div className="bg-[var(--card)] border border-white/5 rounded-[2.5rem] p-12 text-center space-y-4">
+           <Bot className="w-16 h-16 text-white/10 mx-auto" />
+           <h2 className="text-xl font-bold">Botlar topilmadi</h2>
+           <p className="text-white/40 max-w-sm mx-auto">
+             Avval 'Telegram Bot' bo'limidan botni ulang, keyin bu yerda uning menyularini boshqarishingiz mumkin.
+           </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Helper Info */}
         <div className="lg:col-span-1 space-y-6">

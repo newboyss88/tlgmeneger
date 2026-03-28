@@ -80,11 +80,12 @@ export default function AnalyticsPage() {
         t.source
       ])
 
+      // Direct function call is the most reliable in ESM
       // @ts-ignore
-      const tableFunc = typeof autoTable === 'function' ? autoTable : (autoTable as any).default;
+      const applyTable = typeof autoTable === 'function' ? autoTable : (autoTable as any).default;
       
-      if (typeof tableFunc === 'function') {
-        tableFunc(doc, {
+      if (typeof applyTable === 'function') {
+        applyTable(doc, {
           startY: 40,
           head: [['Date', 'User', 'Product', 'SKU', 'Qty', 'Source']],
           body: tableData,
@@ -92,14 +93,20 @@ export default function AnalyticsPage() {
           styles: { font: 'helvetica' }
         })
       } else {
-        // Fallback for some library versions
+        // Fallback for older patterns
         // @ts-ignore
-        doc.autoTable({
-          startY: 40,
-          head: [['Date', 'User', 'Product', 'SKU', 'Qty', 'Source']],
-          body: tableData,
-          theme: 'striped',
-          styles: { font: 'helvetica' }
+        import('jspdf-autotable').then(() => {
+           // @ts-ignore
+           if (typeof doc.autoTable === 'function') {
+             // @ts-ignore
+             doc.autoTable({
+               startY: 40,
+               head: [['Date', 'User', 'Product', 'SKU', 'Qty', 'Source']],
+               body: tableData,
+               theme: 'striped',
+               styles: { font: 'helvetica' }
+             })
+           }
         })
       }
 

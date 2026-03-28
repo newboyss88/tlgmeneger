@@ -362,6 +362,7 @@ export const translations = {
     note: 'Izoh',
     deduct: 'Chiqim',
     operations: 'ta amaliyot',
+    no_activity: 'Hozircha faollik yo\'q',
   },
   ru: {
     hero_title: 'Профессиональное Управление Вашим Telegram Ботом',
@@ -725,6 +726,7 @@ export const translations = {
     note: 'Примечание',
     deduct: 'Расход',
     operations: 'операций',
+    no_activity: 'Пока нет активности',
   },
   en: {
     hero_title: 'Manage Your Telegram Bot Professionally',
@@ -1081,6 +1083,7 @@ export const translations = {
     note: 'Note',
     deduct: 'Deduction',
     operations: 'operations',
+    no_activity: 'No activity yet',
   },
 }
 

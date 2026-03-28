@@ -94,7 +94,7 @@ export async function PUT(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { id, autoReply, title, description, avatar } = await request.json()
+    const { id, autoReply, title, description, avatar, language } = await request.json()
     if (!id) return NextResponse.json({ error: 'Group ID kerak' }, { status: 400 })
 
     const group = await prisma.group.findUnique({ where: { id }, include: { bot: true } })
@@ -144,6 +144,7 @@ export async function PUT(request: Request) {
         ...(autoReply !== undefined && { autoReply }),
         ...(title && { title }),
         ...(avatar && { avatar }),
+        ...(language && { language }),
       },
     })
 

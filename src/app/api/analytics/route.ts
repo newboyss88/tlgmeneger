@@ -60,10 +60,39 @@ export async function GET() {
         totalIncomes,
         topContributors,
         topProducts,
-        rawTransactions: rawTransactions.slice(0, 100) // max 100 for export demo
+        rawTransactions: rawTransactions.map(t => ({
+          id: t.id,
+          type: t.type,
+          quantity: t.quantity,
+          createdAt: t.createdAt,
+          note: t.note,
+          source: t.source,
+          productName: t.product.name,
+          productSku: t.product.sku,
+          user: t.telegramUser ? (t.telegramUser.firstName || t.telegramUser.username || 'User') : (t.user?.name || 'Admin')
+        })).slice(0, 100)
     })
   } catch (error) {
     console.error('Analytics GET xato:', error)
     return NextResponse.json({ error: 'Server xatosi' }, { status: 500 })
+  }
+}
+
+export async function DELETE() {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    
+    const userId = (session.user as any).id
+
+    // Foydalanuvchiga tegishli barcha tranzaksiyalar (tarix) o'chiriladi
+    await prisma.transaction.deleteMany({
+      where: { userId }
+    })
+
+    return NextResponse.json({ success: true, message: 'Tarix muvaffaqiyatli tozalandi.' })
+  } catch (error) {
+    console.error('Analytics DELETE xato:', error)
+    return NextResponse.json({ error: 'Xatolik yuz berdi' }, { status: 500 })
   }
 }

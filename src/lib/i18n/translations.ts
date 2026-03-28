@@ -326,6 +326,8 @@ export const translations = {
     top_contributors: 'Faol a\'zolar',
     total_deductions: 'Jami amaliyotlar',
     analytics_desc: 'Sklad hisob-kitobida guruhdagi ishtirokchilarning amalga oshirgan ishlari haqida batafsil ma\'lumot.',
+    clear_history: 'Tarixni tozalash',
+    history_cleared: 'Amaliyotlar tarixi muvaffaqiyatli tozalandi!',
   },
   ru: {
     hero_title: 'Профессиональное Управление Вашим Telegram Ботом',
@@ -653,6 +655,8 @@ export const translations = {
     top_contributors: 'Активные участники',
     total_deductions: 'Всего операций',
     analytics_desc: 'Подробный отчет по складским операциям, выполненным участниками в группах.',
+    clear_history: 'Очистить историю',
+    history_cleared: 'История операций успешно очищена!',
   },
   en: {
     hero_title: 'Manage Your Telegram Bot Professionally',
@@ -973,6 +977,8 @@ export const translations = {
     top_contributors: 'Top Contributors',
     total_deductions: 'Total Transactions',
     analytics_desc: 'Detailed report of warehouse transactions made by group members.',
+    clear_history: 'Clear History',
+    history_cleared: 'Transaction history cleared effectively!',
   },
 }
 

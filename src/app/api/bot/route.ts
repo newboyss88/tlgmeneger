@@ -75,7 +75,7 @@ export async function PUT(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { id, token, name, username, description, welcomeMessage, avatar } = await request.json()
+    const { id, token, name, username, description, welcomeMessage, avatar, language } = await request.json()
 
     if (!id) return NextResponse.json({ error: 'Bot ID kerak' }, { status: 400 })
 
@@ -88,6 +88,7 @@ export async function PUT(request: Request) {
     if (description !== undefined) updateData.description = description
     if (welcomeMessage !== undefined) updateData.welcomeMessage = welcomeMessage
     if (avatar !== undefined) updateData.avatar = avatar
+    if (language !== undefined) updateData.language = language
 
     const bot = await prisma.bot.update({
       where: { id },

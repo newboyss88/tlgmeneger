@@ -35,7 +35,7 @@ model Bot {
   description     String?
   welcomeMessage  String    @default("Assalomu alaykum! Botga xush kelibsiz! 🤖")
   isActive        Boolean   @default(false)
-  webhookUrl      String?
+  language        String    @default("uz") // uz, ru, en
   settings        String?   // JSON string
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -55,9 +55,9 @@ model TelegramUser {
   username  String?
   firstName String?
   lastName  String?
-  isGroup   Boolean  @default(false) // true if this record represents a group chat rather than a direct user (though we handle groups in Group model, sometimes useful)
-  source    String   @default("BOT") // BOT or GROUP
-  isBanned  Boolean  @default(false) // Whether banned in DB
+  isGroup   Boolean  @default(false) 
+  source    String   @default("BOT") 
+  isBanned  Boolean  @default(false) 
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -78,6 +78,7 @@ model Group {
   inviteLink      String?
   isActive        Boolean   @default(false)
   autoReply       Boolean   @default(false)
+  language        String    @default("uz") // uz, ru, en
   avatar          String?
   settings        String?   // JSON string
   createdAt       DateTime  @default(now())

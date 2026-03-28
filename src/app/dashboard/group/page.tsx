@@ -54,6 +54,7 @@ export default function GroupPage() {
       ])
 
       if (botRes.ok) setBots(await botRes.json())
+      if (groupRes.ok) setGroups(await groupRes.json())
     } catch (err) {
       toast.error(t('load_users_error'))
     } finally {

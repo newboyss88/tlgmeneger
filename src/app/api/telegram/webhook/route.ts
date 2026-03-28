@@ -18,14 +18,14 @@ export async function POST(request: Request) {
     const { searchParams } = new URL(request.url)
     const urlBotId = searchParams.get('botId')
 
-    let botQuery: any = { isActive: true }
-    if (urlBotId) {
-      botQuery = { id: urlBotId, isActive: true }
+    if (!urlBotId) {
+      console.error(`[WEBHOOK] BotId ko'rsatilmagan (cross-bot pollution danger)! URL: ${request.url}`)
+      return NextResponse.json({ ok: true })
     }
 
     // Find bot by checking all active bots' webhooks (prioritizing urlBotId)
     const bots = await prisma.bot.findMany({
-      where: botQuery,
+      where: { id: urlBotId, isActive: true },
       include: {
         warehouses: {
           include: { products: true }
@@ -200,7 +200,7 @@ export async function POST(request: Request) {
       const group = bot.groups.find((g: any) => String(g.chatId) === String(chatId))
       console.log(`[WEBHOOK] Chat ID: ${chatId}, Found Group: ${!!group}, AutoReply: ${group?.autoReply}, Groups in DB: ${bot.groups.map((g: any) => g.chatId).join(',')}`)
 
-      if (group) {
+      if (group && group.autoReply) {
         const allProducts = bot.warehouses.flatMap((w: any) =>
           w.products.map((p: any) => ({ ...p, warehouseName: w.name }))
         )

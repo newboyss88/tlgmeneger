@@ -135,6 +135,7 @@ export async function PUT(request: Request) {
       data: {
         ...(autoReply !== undefined && { autoReply }),
         ...(title && { title }),
+        ...(avatar && { avatar }),
       },
     })
 

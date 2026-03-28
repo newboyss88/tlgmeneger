@@ -45,6 +45,14 @@ export async function POST(request: Request) {
       },
     })
 
+    // Auto setWebhook
+    const origin = new URL(request.url).origin
+    await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: `${origin}/api/telegram/webhook?botId=${bot.id}` })
+    }).catch(console.error)
+
     await prisma.auditLog.create({
       data: {
         action: 'CREATE',
@@ -67,9 +75,11 @@ export async function PUT(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { id, token, name, username, description, welcomeMessage } = await request.json()
+    const { id, token, name, username, description, welcomeMessage, avatar } = await request.json()
 
     if (!id) return NextResponse.json({ error: 'Bot ID kerak' }, { status: 400 })
+
+    const existing = await prisma.bot.findUnique({ where: { id } })
 
     const updateData: any = {}
     if (token) updateData.token = token
@@ -77,11 +87,23 @@ export async function PUT(request: Request) {
     if (username) updateData.username = username
     if (description !== undefined) updateData.description = description
     if (welcomeMessage !== undefined) updateData.welcomeMessage = welcomeMessage
+    if (avatar !== undefined) updateData.avatar = avatar
 
     const bot = await prisma.bot.update({
       where: { id },
       data: updateData,
     })
+
+    // Auto setWebhook
+    const botTokenToUse = token || existing?.token
+    if (botTokenToUse) {
+       const origin = new URL(request.url).origin
+       await fetch(`https://api.telegram.org/bot${botTokenToUse}/setWebhook`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ url: `${origin}/api/telegram/webhook?botId=${bot.id}` })
+       }).catch(console.error)
+    }
 
     await prisma.auditLog.create({
       data: {

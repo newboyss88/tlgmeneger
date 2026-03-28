@@ -77,6 +77,7 @@ model Group {
   inviteLink      String?
   isActive        Boolean   @default(false)
   autoReply       Boolean   @default(false)
+  avatar          String?
   settings        String?   // JSON string
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

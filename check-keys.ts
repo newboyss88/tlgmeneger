@@ -1,5 +1,5 @@
 
-import { translations } from './src/lib/i18n/translations.ts';
+import { translations } from './src/lib/i18n/translations';
 
 const uzKeys = Object.keys(translations.uz);
 const ruKeys = Object.keys(translations.ru);

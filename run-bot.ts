@@ -1,51 +1,32 @@
-import TelegramBot from 'node-telegram-bot-api';
-import prisma from './src/lib/prisma';
-
 async function start() {
-  const bots = await prisma.bot.findMany({ where: { isActive: true } });
-  if (bots.length === 0) {
-    console.log("❌ Aktiv bot topilmadi ma'lumotlar bazasida. Oldin Admin paneldan bot ulang.");
-    return;
-  }
-  
-  console.log(`🚀 Polling tizimi faollashtirildi. Jami aktiv botlar soni: ${bots.length}`);
+  console.log(`
+====================================================================
+🔴 DIQQAT: LOKAL "run-bot.ts" SCRIPT ASOSIY MUAMMO MANBAYI! 🔴
+====================================================================
 
-  bots.forEach((bot: any) => {
-    console.log(`🤖 Bot ishga tushmoqda: ${bot.name} (@${bot.username})`);
-    
-    // Har bir bot uchun alohida polling instansiyasi
-    const tgBot = new TelegramBot(bot.token, { polling: true });
-    
-    tgBot.on('message', async (msg) => {
-      if (!msg.text) return;
-      console.log(`\n📨 [${bot.name}] Yangi xabar keldi: "${msg.text}"`);
-      
-      try {
-        // Asl Telegram Webhook payloadiga o'xshatib yuboramiz. Lekin URL da botId keladi.
-        const res = await fetch(`http://127.0.0.1:3000/api/telegram/webhook?botId=${bot.id}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ message: msg })
-        });
-        
-        if (res.ok) {
-          console.log(`✅ [${bot.name}] Webhook'ga tushdi.`);
-        } else {
-          console.error(`❌ [${bot.name}] Webhook xatosi: ${res.status}`);
-        }
-      } catch (e: any) {
-        console.error(`❌ [${bot.name}] Ulanib bo'lmadi. (npm run dev ishlayaptimi?)`);
-      }
-    });
+Telegram tarmog'ining qat'iy qoidasi:
+1 ta Bot Tokeni BIR VAQTDA faqat 1 ta joydan xabar ololadi. 
 
-    tgBot.on('polling_error', (error) => {
-      console.error(`[Polling Error - ${bot.name}]`, error.message);
-    });
-  });
+Qachonki siz "npx tsx run-bot.ts" ni yurgizsangiz, Telegram avtomatik
+ravishda Vercel-dagi Webhook ulanishini BUZADI va O'CHIRADI. Natijada
+sizning jonli platformangiz xabarlarsiz "ko'r" bo'lib qoladi.
 
-  console.log("✅ Barcha botlar xabarlarni kutyapti...\n(To'xtatish uchun Ctrl+C bosing)");
+✅ TO'G'RI ISHLASH TARTIBI (Sinxron tizim):
+Sizga umuman bu skriptni yurgizish kerak emas! Nega?
+1) Vercel-dagi Webhook 24/7 ishlab turibdi. Xabar kelsa Turso DB ni yangilaydi.
+2) Siz "localhost:3000" (npm run dev) qilib o'z kompyuteringizdan saytga kirsangiz,
+   u ham ushbu Turso DB dan ma'lumot o'qiydi.
+3) Demak, Telegram xabar kelsa, Vercel uni bazaga yozadi -> sizning Local saytingiz
+   sodda qilib sahifani yangilaganda o'sha o'zgarishni ko'radi!
+
+Barcha tizim 100% sinxron ishlashi uchun bitta qoida: LOKAL BOTNI O'CHIRING.
+Sizga hozil faqat "npm run dev" kerak xolos. Tizim o'zi ishlayveradi.
+
+Shu sababli, ishlab turgan tizim buzilmasligi uchun ushbu "run-bot.ts" 
+kodi atayin bloklandi.
+====================================================================
+  `);
+  process.exit(1);
 }
 
 start();

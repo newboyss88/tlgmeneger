@@ -64,6 +64,7 @@ model TelegramUser {
 
   botId     String
   bot       Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
 
   @@unique([botId, telegramId])
   @@index([botId])
@@ -135,9 +136,13 @@ model Transaction {
   product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   userId          String?
   user            User?     @relation(fields: [userId], references: [id])
+  
+  telegramUserId  String?
+  telegramUser    TelegramUser? @relation(fields: [telegramUserId], references: [id])
 
   @@index([productId])
   @@index([userId])
+  @@index([telegramUserId])
 }
 
 model AuditLog {

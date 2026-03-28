@@ -1,29 +1,27 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
-// Telegram Webhook Endpoint
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const message = body.message || body.edited_message
+    const message = body.message || body.edited_message || body.callback_query?.message
+    const callbackQuery = body.callback_query
 
     if (!message) {
       return NextResponse.json({ ok: true })
     }
 
     const chatId = message.chat.id
-    const text = message.text || ''
-    const chatType = message.chat.type // 'private', 'group', 'supergroup'
+    const text = (message.text || '').trim()
+    const chatType = message.chat.type
 
     const { searchParams } = new URL(request.url)
     const urlBotId = searchParams.get('botId')
 
     if (!urlBotId) {
-      console.error(`[WEBHOOK] BotId ko'rsatilmagan (cross-bot pollution danger)! URL: ${request.url}`)
       return NextResponse.json({ ok: true })
     }
 
-    // Find bot by checking all active bots' webhooks (prioritizing urlBotId)
     const bots = await prisma.bot.findMany({
       where: { id: urlBotId, isActive: true },
       include: {
@@ -35,15 +33,15 @@ export async function POST(request: Request) {
     })
 
     if (bots.length === 0) {
-      console.error(`[WEBHOOK] Bot topilmadi! URL botId: ${urlBotId}`)
       return NextResponse.json({ ok: true })
     }
 
-    const bot = bots[0] // Use the found bot
+    const bot = bots[0]
     const botToken = bot.token
 
-    // --- UPSERT TELEGRAM USER & CHECK BAN ---
-    const fromUser = message.from
+    // --- UPSERT TELEGRAM USER ---
+    const fromUser = callbackQuery?.from || message.from
+    let tgUserId = null;
     if (fromUser && !fromUser.is_bot) {
       const tgIdStr = fromUser.id.toString()
       const tgUser = await prisma.telegramUser.upsert({
@@ -63,16 +61,16 @@ export async function POST(request: Request) {
           botId: bot.id
         }
       })
+      
+      tgUserId = tgUser.id;
 
       if (tgUser.isBanned) {
-        // Ignor banned users completely
-        if (chatType === 'private') {
-           await sendTelegramMessage(botToken, chatId, '⛔ Siz botdan foydalanishdan bloklangansiz.')
+        if (chatType === 'private' && !callbackQuery) {
+           await sendTelegramMessage(botToken, chatId, '⛔ Siz bloklangansiz.')
         }
         return NextResponse.json({ ok: true })
       }
     }
-    // ----------------------------------------
 
     // LINGUISTIC SETTINGS
     const setting = await prisma.setting.findFirst({
@@ -82,222 +80,243 @@ export async function POST(request: Request) {
     
     const dict = {
       uz: {
-        autoDeduct: 'Avto-chiqim', product: 'Mahsulot', deduct: 'Chiqim', newBalance: 'Yangi qoldiq',
-        statusLow: 'Yana kam qoldi!', statusOk: 'Yetarli', needQtyMsg: 'Skladdan ayirish uchun sonini ham yozing (Masalan: "{name} 1ta")',
-        price: 'Narx', balance: 'Qoldiq'
+        autoDeduct: 'Avto-chiqim', product: 'Mahsulot', deduct: 'Chiqim', income: 'Kirim', newBalance: 'Yangi qoldiq',
+        statusLow: 'Yana kam qoldi!', statusOk: 'Yetarli', needQtyMsg: 'Skladdan amaliyot uchun sonni kiriting. Masalan: "{name} 1ta"',
+        price: 'Narx', balance: 'Qoldiq',
+        product_not_found: '❌ Bunday mahsulot (yoki SKU) omborda topilmadi. Nomini yoki SKU kodini tekshirib qaytadan urinib ko\'ring.',
+        multiple_products_found: '🤔 Quyidagi mahsulotlardan qaysi birini nazarda tutdingiz?',
+        select_warehouse: '🏢 Qaysi ombordan amaliyot bajaramiz?',
+        select_product: '📦 Qaysi mahsulotni tanlaysiz?',
+        select_quantity: 'Nechta chiqim (yoki kirim) qilasiz?',
+        back: '◀️ Ortga', cancel: 'Bekor qilish'
       },
       ru: {
-        autoDeduct: 'Авто-списание', product: 'Товар', deduct: 'Списание', newBalance: 'Новый остаток',
-        statusLow: 'Мало в наличии!', statusOk: 'Достаточно', needQtyMsg: 'Для списания укажите количество (Например: "{name} 1шт")',
-        price: 'Цена', balance: 'Остаток'
+        autoDeduct: 'Авто-списание', product: 'Товар', deduct: 'Списание', income: 'Приход', newBalance: 'Новый остаток',
+        statusLow: 'Мало в наличии!', statusOk: 'Достаточно', needQtyMsg: 'Для списания укажите количество. Например: "{name} 1шт"',
+        price: 'Цена', balance: 'Остаток',
+        product_not_found: '❌ Такой товар (или артикул) не найден на складе. Проверьте правильность написания.',
+        multiple_products_found: '🤔 Какой именно из этих товаров вы имели в виду?',
+        select_warehouse: '🏢 С каким складом будем работать?',
+        select_product: '📦 Какой продукт выберите?',
+        select_quantity: 'Укажите количество для операции:',
+        back: '◀️ Назад', cancel: 'Отмена'
       },
       en: {
-        autoDeduct: 'Auto-deduction', product: 'Product', deduct: 'Deducted', newBalance: 'New balance',
-        statusLow: 'Running low!', statusOk: 'In stock', needQtyMsg: 'To deduct, please specify the quantity (E.g: "{name} 1pcs")',
-        price: 'Price', balance: 'Balance'
+        autoDeduct: 'Auto-deduction', product: 'Product', deduct: 'Deducted', income: 'Added', newBalance: 'New balance',
+        statusLow: 'Running low!', statusOk: 'In stock', needQtyMsg: 'To deduct, please specify the quantity. E.g: "{name} 1pcs"',
+        price: 'Price', balance: 'Balance',
+        product_not_found: '❌ Such a product (or SKU) was not found in the warehouse. Please check the spelling.',
+        multiple_products_found: '🤔 Which of the following products did you mean?',
+        select_warehouse: '🏢 Which warehouse would you like to operate in?',
+        select_product: '📦 Which product do you want to select?',
+        select_quantity: 'Please specify the quantity:',
+        back: '◀️ Back', cancel: 'Cancel'
       }
     };
     const t = dict[lng] || dict['uz'];
 
-    // Handle /start command
-    if (text === '/start') {
-      await sendTelegramMessage(botToken, chatId, bot.welcomeMessage)
-      return NextResponse.json({ ok: true })
-    }
+    const allProducts = bot.warehouses.flatMap((w: any) =>
+      w.products.map((p: any) => ({ ...p, warehouseName: w.name, warehouseId: w.id }))
+    );
 
-    // Handle /sklad command - show all warehouses
-    if (text === '/sklad') {
-      let response = '📦 *Skladlar ro\'yxati:*\n\n'
-      for (const warehouse of bot.warehouses) {
-        const totalProducts = warehouse.products.length
-        const totalQuantity = warehouse.products.reduce((sum: number, p: any) => sum + p.quantity, 0)
-        response += `🏢 *${warehouse.name}*\n`
-        response += `   📊 Mahsulotlar: ${totalProducts}\n`
-        response += `   📦 Jami birlik: ${totalQuantity}\n\n`
-      }
-      if (bot.warehouses.length === 0) {
-        response = '📦 Hozircha sklad yo\'q. Admin paneldan sklad yarating.'
-      }
-      await sendTelegramMessage(botToken, chatId, response, 'Markdown')
-      return NextResponse.json({ ok: true })
-    }
-
-    // Handle /mahsulot command - search product
-    if (text.startsWith('/mahsulot')) {
-      const query = text.replace('/mahsulot', '').trim()
-      if (!query) {
-        await sendTelegramMessage(botToken, chatId, '🔍 Mahsulot nomi kiriting.\n\nMisol: `/mahsulot iPhone`', 'Markdown')
+    // ==========================================
+    // 1. CALLBACK QUERY (MENYULAR VA TUGMALAR)
+    // ==========================================
+    if (callbackQuery) {
+      const data = callbackQuery.data;
+      
+      if (data === 'menu') {
+        // Asosiy menyu (Skladlar)
+        const buttons = bot.warehouses.map((w: any) => [{ text: `🏢 ${w.name}`, callback_data: `wh_${w.id}` }]);
+        await sendTelegramMessage(botToken, chatId, `*${t.select_warehouse}*`, 'Markdown', { inline_keyboard: buttons });
         return NextResponse.json({ ok: true })
       }
 
-      const allProducts = bot.warehouses.flatMap((w: any) =>
-        w.products.map((p: any) => ({ ...p, warehouseName: w.name }))
-      )
-
-      const found = allProducts.filter((p: any) =>
-        p.name.toLowerCase().includes(query.toLowerCase())
-      )
-
-      if (found.length === 0) {
-        await sendTelegramMessage(botToken, chatId, `❌ "${query}" bo'yicha mahsulot topilmadi.`)
+      if (data.startsWith('wh_')) {
+        const wId = data.replace('wh_', '');
+        const wh = bot.warehouses.find((w: any) => w.id === wId);
+        if (wh) {
+            const buttons = wh.products.slice(0, 50).map((p: any) => [{ text: `📦 ${p.name} (${p.quantity} ${p.unit})`, callback_data: `pr_${p.id}` }]);
+            buttons.push([{ text: t.back, callback_data: 'menu' }]);
+            await sendTelegramMessage(botToken, chatId, `*${wh.name}*\n\n${t.select_product}`, 'Markdown', { inline_keyboard: buttons });
+        }
         return NextResponse.json({ ok: true })
       }
 
-      let response = `🔍 *"${query}" bo'yicha natijalar:*\n\n`
-      for (const product of found) {
-        const status = product.quantity <= product.minQuantity ? '🔴 Kam' : '🟢 Yetarli'
-        response += `📱 *${product.name}*\n`
-        response += `   📦 Miqdor: ${product.quantity} ${product.unit}\n`
-        response += `   💰 Narx: ${new Intl.NumberFormat('uz-UZ').format(product.price)} so'm\n`
-        response += `   🏢 Sklad: ${product.warehouseName}\n`
-        response += `   ${status}\n\n`
-      }
-      await sendTelegramMessage(botToken, chatId, response, 'Markdown')
-      return NextResponse.json({ ok: true })
-    }
-
-    // Handle /qoldiq command - check remaining stock
-    if (text.startsWith('/qoldiq')) {
-      const query = text.replace('/qoldiq', '').trim()
-      const allProducts = bot.warehouses.flatMap((w: any) =>
-        w.products.map((p: any) => ({ ...p, warehouseName: w.name }))
-      )
-
-      let products = allProducts
-      if (query) {
-        products = products.filter((p: any) => p.name.toLowerCase().includes(query.toLowerCase()))
-      }
-
-      if (products.length === 0) {
-        await sendTelegramMessage(botToken, chatId, '📦 Mahsulot topilmadi.')
+      if (data.startsWith('pr_')) {
+        const prId = data.replace('pr_', '');
+        const pr = allProducts.find((p: any) => p.id === prId);
+        if (pr) {
+            const buttons = [
+              [
+                { text: `📉 -1`, callback_data: `act_out_1_${pr.id}` },
+                { text: `📉 -5`, callback_data: `act_out_5_${pr.id}` },
+                { text: `📉 -10`, callback_data: `act_out_10_${pr.id}` }
+              ],
+              [
+                { text: `📈 +1`, callback_data: `act_in_1_${pr.id}` },
+                { text: `📈 +5`, callback_data: `act_in_5_${pr.id}` },
+                { text: `📈 +10`, callback_data: `act_in_10_${pr.id}` }
+              ],
+              [{ text: t.back, callback_data: `wh_${pr.warehouseId}` }]
+            ];
+            const msg = `📱 *${pr.name}*\n🏢 ${pr.warehouseName}\n📦 ${t.balance}: *${pr.quantity}* ${pr.unit}\n\n${t.select_quantity}`;
+            await sendTelegramMessage(botToken, chatId, msg, 'Markdown', { inline_keyboard: buttons });
+        }
         return NextResponse.json({ ok: true })
       }
 
-      let response = '📊 *Mahsulot qoldiqlari:*\n\n'
-      for (const p of products) {
-        const emoji = p.quantity <= p.minQuantity ? '🔴' : p.quantity <= p.minQuantity * 2 ? '🟡' : '🟢'
-        response += `${emoji} ${p.name}: *${p.quantity}* ${p.unit}\n`
+      if (data.startsWith('act_')) {
+        // act_out_1_prID
+        const parts = data.split('_');
+        const type = parts[1].toUpperCase(); // IN or OUT
+        const qty = parseInt(parts[2]);
+        const prId = parts.slice(3).join('_');
+
+        const pr = allProducts.find((p: any) => p.id === prId);
+        if (pr) {
+            const actualQty = type === 'OUT' ? Math.min(pr.quantity, qty) : qty; // outda bordan ortiq ayirmaymiz
+            const newQuantity = type === 'OUT' ? pr.quantity - actualQty : pr.quantity + actualQty;
+
+            if (actualQty > 0 || type === 'IN') {
+              await prisma.product.update({ where: { id: pr.id }, data: { quantity: newQuantity } });
+              await prisma.transaction.create({
+                data: {
+                  type: type as 'IN' | 'OUT',
+                  quantity: actualQty,
+                  note: `Telegram Menyu orqali amaliyot.`,
+                  source: chatType === 'private' ? 'BOT' : 'GROUP',
+                  productId: pr.id,
+                  userId: bot.userId,
+                  telegramUserId: tgUserId
+                }
+              });
+
+              const status = newQuantity <= pr.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
+              const pType = type === 'OUT' ? `📉 ${t.deduct}` : `📈 ${t.income}`;
+              const msg = `✅ *Operatsiya muvaffaqiyatli:*\n📱 ${t.product}: *${pr.name}*\n${pType}: *${actualQty}* ${pr.unit}\n📦 ${t.newBalance}: *${newQuantity}* ${pr.unit}\n${status}`;
+              await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
+            }
+        }
+        return NextResponse.json({ ok: true })
       }
-      await sendTelegramMessage(botToken, chatId, response, 'Markdown')
-      return NextResponse.json({ ok: true })
     }
 
-    // Handle /yordam command
-    if (text === '/yordam') {
+
+    // ==========================================
+    // 2. TEXT BUYRUQLAR VA AVTO-CHIQIM
+    // ==========================================
+    if (!text) return NextResponse.json({ ok: true });
+
+    if (text === '/start' || text === '/yordam') {
       const helpText = `🤖 *Bot buyruqlari:*\n\n` +
-        `/start — Botni ishga tushirish\n` +
-        `/sklad — Skladlar ro'yxati\n` +
-        `/mahsulot [nom] — Mahsulot izlash\n` +
-        `/qoldiq [nom] — Qoldiqni tekshirish\n` +
-        `/yordam — Yordam\n\n` +
-        `📝 Guruhda ham ishlaydi!`
+        `/menu — 🕹 Interaktiv boshqaruv pulti\n` +
+        `/sklad — 🏢 Skladlar ro'yxati\n` +
+        `/mahsulot [nom] — 🔍 Mahsulot izlash\n` +
+        `/qoldiq [nom] — 📊 Qoldiqni tekshirish\n\n` +
+        `📝 Guruhda qisqacha nom bilan sписание ham ishlaydi (Masalan: 'Toner 1 шт')!`;
       await sendTelegramMessage(botToken, chatId, helpText, 'Markdown')
       return NextResponse.json({ ok: true })
     }
 
-    // Auto-reply and Auto-subtract in groups
-    if (chatType === 'group' || chatType === 'supergroup') {
-      const group = bot.groups.find((g: any) => String(g.chatId) === String(chatId))
-      console.log(`[WEBHOOK] Chat ID: ${chatId}, Found Group: ${!!group}, AutoReply: ${group?.autoReply}, Groups in DB: ${bot.groups.map((g: any) => g.chatId).join(',')}`)
+    if (text === '/menu' || text === '/sklad') {
+       const buttons = bot.warehouses.map((w: any) => [{ text: `🏢 ${w.name}`, callback_data: `wh_${w.id}` }]);
+       await sendTelegramMessage(botToken, chatId, `*${t.select_warehouse}*`, 'Markdown', { inline_keyboard: buttons });
+       return NextResponse.json({ ok: true })
+    }
 
-      if (group && group.autoReply) {
-        const allProducts = bot.warehouses.flatMap((w: any) =>
-          w.products.map((p: any) => ({ ...p, warehouseName: w.name }))
-        )
+    // Guruh/Bot dagi yozma auto-chiqim mantiqi
+    // Faqat agar "group" menyusida autoReply yoniq bo'lsa yoki "private" chat bo'lsa
+    let canProcessText = false;
+    if (chatType === 'private') {
+       canProcessText = true;
+    } else {
+       const group = bot.groups.find((g: any) => String(g.chatId) === String(chatId));
+       if (group && group.autoReply) canProcessText = true;
+    }
+
+    if (canProcessText && !text.startsWith('/')) {
+        // Matn ichidan miqdorni topish
+        const numMatch = text.match(/(\\d+)/);
+        const qtyToSubtract = numMatch ? parseInt(numMatch[1], 10) : 0;
         
-        console.log(`[WEBHOOK] All Products count: ${allProducts.length}, Text: "${text}"`)
-        
-        // Check if message mentions products — extremely loose matching
-        const qtyRegex = /(\d+)\s*(ta|sht|шт|dona|d|pcs|штук|штуки)/i
-        let qtyToSubtract = 0
-        const qtyMatch = text.match(qtyRegex)
-        
-        if (qtyMatch && qtyMatch[1]) {
-           qtyToSubtract = parseInt(qtyMatch[1], 10)
-        }
-        
-        console.log(`[WEBHOOK] Found quantity: ${qtyToSubtract}`)
+        // Matndan so'zni ajratish (raqamlarni va o'lchov birliklarini olib tashlab)
+        const nameQuery = text.replace(/\\d+/g, '').replace(/(ta|sht|шт|dona|d|pcs|штуки|штук)/gi, '').replace(/[?!.,\\-]/g, ' ').trim().toLowerCase();
 
-        let subtractedSomething = false
+        if (nameQuery.length > 2) {
+            const found = allProducts.filter((p: any) => 
+               p.name.toLowerCase().includes(nameQuery) || 
+               (p.sku && p.sku.toLowerCase() === nameQuery) // SKU ni aniq match qilamiz
+            );
 
-        for (const product of allProducts) {
-          const textLower = text.toLowerCase()
-          const nameMatch = textLower.includes(product.name.toLowerCase())
-          const skuMatch = product.sku && textLower.includes(product.sku.toLowerCase())
+            if (found.length === 0 && qtyToSubtract > 0) {
+               // Son yozganu, nomni topolmagan
+               await sendTelegramMessage(botToken, chatId, t.product_not_found);
+            } else if (found.length === 1 && qtyToSubtract > 0) {
+               // 1 ta topildi va son ham ko'rsatilgan -> AVTO CHIQIM
+               const product = found[0];
+               const actualDeduct = qtyToSubtract;
+               const newQuantity = Math.max(0, product.quantity - actualDeduct);
 
-          if (nameMatch || skuMatch) {
-            console.log(`[WEBHOOK] Product matched: ${product.name}, qty: ${qtyToSubtract}`)
-            
-            if (qtyToSubtract > 0) {
-              // Avto-chiqim qoidalari bajarildi (nomi va soni ko'rsatilgan)
-              let actualDeduct = qtyToSubtract
-              
-              const newQuantity = Math.max(0, product.quantity - actualDeduct)
+               await prisma.product.update({ where: { id: product.id }, data: { quantity: newQuantity } });
+               await prisma.transaction.create({
+                 data: {
+                   type: 'OUT',
+                   quantity: actualDeduct,
+                   note: `Telegram xabardan avto-chiqim. "${text}"`,
+                   source: chatType === 'private' ? 'BOT' : 'GROUP',
+                   productId: product.id,
+                   userId: bot.userId,
+                   telegramUserId: tgUserId
+                 }
+               });
 
-              // DB Update
-              await prisma.product.update({
-                where: { id: product.id },
-                data: { quantity: newQuantity }
-              })
-
-              // Transaction add
-              await prisma.transaction.create({
-                data: {
-                  type: 'OUT',
-                  quantity: actualDeduct,
-                  note: `Telegram guruhdan avto-chiqim. Xabar: "${text}"`,
-                  source: 'GROUP',
-                  productId: product.id,
-                  userId: bot.userId,
-                }
-              })
-
-              const status = newQuantity <= product.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`
-              const msg = `✅ *${t.autoDeduct}:*\n📱 ${t.product}: *${product.name}*\n📦 ${t.deduct}: *${actualDeduct}* ${product.unit}\n📉 ${t.newBalance}: *${newQuantity}* ${product.unit}\n${status}`
-              await sendTelegramMessage(botToken, chatId, msg, 'Markdown')
-              
-              subtractedSomething = true
-            } else if (!subtractedSomething && group.autoReply) {
-              // Shunchaki nomini yozgan bo'lsa va autoReply yoniq bo'lsa, ma'lumot beramiz
-              const status = product.quantity <= product.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`
-              const msg = `📱 *${product.name}*\n📦 ${t.balance}: *${product.quantity}* ${product.unit}\n💰 ${t.price}: ${new Intl.NumberFormat('uz-UZ').format(product.price)}\n${status}\n\n_💡 ${t.needQtyMsg.replace('{name}', product.name)}_`
-              await sendTelegramMessage(botToken, chatId, msg, 'Markdown')
-              subtractedSomething = true
+               const status = newQuantity <= product.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
+               const msg = `✅ *${t.autoDeduct}:*\n📱 ${t.product}: *${product.name}*\n📦 ${t.deduct}: *${actualDeduct}* ${product.unit}\n📉 ${t.newBalance}: *${newQuantity}* ${product.unit}\n${status}`;
+               await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
+            } else if (found.length > 1 && qtyToSubtract > 0) {
+               // BIR NECHTA O'XSHASH TOPILDI -> BUTTONLAR
+               const buttons = found.slice(0, 8).map((p: any) => [{ text: `${p.name} (Qoldiq: ${p.quantity})`, callback_data: `act_out_${qtyToSubtract}_${p.id}` }]);
+               await sendTelegramMessage(botToken, chatId, `*${t.multiple_products_found}*`, 'Markdown', { inline_keyboard: buttons });
+            } else if (found.length > 0 && qtyToSubtract === 0) {
+               // Son ko'rsatilmagan bo'lsa
+               const product = found[0];
+               const status = product.quantity <= product.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
+               let msg = `📱 *${product.name}*\n📦 ${t.balance}: *${product.quantity}* ${product.unit}\n💰 ${t.price}: ${new Intl.NumberFormat('uz-UZ').format(product.price)}\n${status}`;
+               if (found.length > 1) msg += `\n\n_(Xuddi shunday yana ${found.length - 1} ta mahsulot bor. Aniq ismini yozing)_`;
+               msg += `\n\n_💡 ${t.needQtyMsg.replace('{name}', product.name)}_`;
+               await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
             }
-          }
         }
-      }
     }
 
     return NextResponse.json({ ok: true })
-    return NextResponse.json({ ok: true })
   } catch (error: any) {
     console.error('Webhook error:', error)
-    require('fs').appendFileSync('webhook-error.log', new Date().toISOString() + '\\n' + error.stack + '\\n\\n')
     return NextResponse.json({ ok: true, error: error.message })
   }
 }
 
-
-// ...
-async function sendTelegramMessage(token: string, chatId: number, text: string, parseMode?: string) {
+async function sendTelegramMessage(token: string, chatId: number, text: string, parseMode?: string, replyMarkup?: any) {
   try {
+    const payload: any = {
+        chat_id: chatId,
+        text: text || "Noma'lum xato, matn yo'q.",
+    };
+    if (parseMode) payload.parse_mode = parseMode;
+    if (replyMarkup) payload.reply_markup = replyMarkup;
+
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: text || "Noma'lum xato, matn yo'q.",
-        parse_mode: parseMode,
-      }),
+      body: JSON.stringify(payload),
     })
     const data = await res.json()
     if (!data.ok) {
-       console.error(`[WEBHOOK] Telegram sendMessage error for chat ${chatId}:`, data)
+       console.error(`[WEBHOOK] Telegram sendMessage error:`, data)
     }
     return data
   } catch (error) {
-    console.error(`[WEBHOOK] Failed to send message to ${chatId}:`, error)
+    console.error(`[WEBHOOK] Failed to send message:`, error)
   }
 }
-

@@ -116,18 +116,26 @@ export async function PUT(request: Request) {
        })
     }
     if (avatar && avatar.startsWith('data:image')) {
-       const base64Data = avatar.split(',')[1]
-       const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
-       const buffer = Buffer.from(base64Data, 'base64')
-       const blob = new Blob([buffer], { type: mimeType })
-       const formData = new FormData()
-       formData.append('chat_id', chatId)
-       formData.append('photo', blob, 'photo.jpg')
-       
-       await fetch(`https://api.telegram.org/bot${botToken}/setChatPhoto`, {
-           method: 'POST',
-           body: formData
-       })
+       try {
+         const base64Data = avatar.split(',')[1]
+         const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
+         const buffer = Buffer.from(base64Data, 'base64')
+         const blob = new Blob([buffer], { type: mimeType })
+         const formData = new FormData()
+         formData.append('chat_id', chatId)
+         formData.append('photo', blob, 'photo.jpg')
+         
+         const photoRes = await fetch(`https://api.telegram.org/bot${botToken}/setChatPhoto`, {
+             method: 'POST',
+             body: formData
+         })
+         const pData = await photoRes.json()
+         if (!pData.ok) {
+           console.error('Group Avatar setChatPhoto error:', pData)
+         }
+       } catch (err) {
+         console.error('Group Avatar update structure error:', err)
+       }
     }
 
     const updatedGroup = await prisma.group.update({

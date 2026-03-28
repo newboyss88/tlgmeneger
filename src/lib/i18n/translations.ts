@@ -313,6 +313,19 @@ export const translations = {
     delete_group_api_error: 'Hozircha guruhni butunlay o\'chirish API si ulanmagan. Tahrirlashdan avto-javobni o\'chirib qo\'ying.',
     welcome_msg_default: 'Assalomu alaykum! Botga xush kelibsiz! 🤖',
     bot_token_placeholder: '123456789:ABCDefGhIJKlmNo...',
+    
+    // Webhook Bot Logic & Analytics Additions
+    product_not_found: '❌ Bunday mahsulot (yoki SKU) omborda topilmadi. Nomini yoki maxsus kodini tekshirib qaytadan urinib ko\'ring.',
+    multiple_products_found: '🤔 Quyidagi mahsulotlardan qaysi birini nazarda tutdingiz?',
+    select_warehouse: '🏢 Qaysi ombordan amaliyot bajaramiz?',
+    select_product: '📦 Qaysi mahsulotni tanlaysiz?',
+    select_quantity: 'Nechta chiqim (yoki kirim) qilasiz?',
+    export_pdf: 'PDF yuklash',
+    export_excel: 'Excel yuklash',
+    group_analytics: 'Guruh statistikasi',
+    top_contributors: 'Faol a\'zolar',
+    total_deductions: 'Jami amaliyotlar',
+    analytics_desc: 'Sklad hisob-kitobida guruhdagi ishtirokchilarning amalga oshirgan ishlari haqida batafsil ma\'lumot.',
   },
   ru: {
     hero_title: 'Профессиональное Управление Вашим Telegram Ботом',
@@ -627,6 +640,19 @@ export const translations = {
     delete_group_api_error: 'API для полного удаления группы еще не подключен. Отключите автоответ в настройках.',
     welcome_msg_default: 'Здравствуйте! Добро пожаловать в бот! 🤖',
     bot_token_placeholder: '123456789:ABCDefGhIJKlmNo...',
+    
+    // Webhook Bot Logic & Analytics Additions
+    product_not_found: '❌ Такой товар (или артикул) не найден на складе. Проверьте правильность написания и попробуйте еще раз.',
+    multiple_products_found: '🤔 Какой именно из этих товаров вы имели в виду?',
+    select_warehouse: '🏢 С каким складом будем работать?',
+    select_product: '📦 Какой продукт выберите?',
+    select_quantity: 'Укажите количество для списания (или прихода):',
+    export_pdf: 'Скачать PDF',
+    export_excel: 'Скачать Excel',
+    group_analytics: 'Статистика группы',
+    top_contributors: 'Активные участники',
+    total_deductions: 'Всего операций',
+    analytics_desc: 'Подробный отчет по складским операциям, выполненным участниками в группах.',
   },
   en: {
     hero_title: 'Manage Your Telegram Bot Professionally',
@@ -934,6 +960,19 @@ export const translations = {
     delete_group_api_error: 'Delete group API not yet connected. Disable auto-reply in settings.',
     welcome_msg_default: 'Hello! Welcome to the bot! 🤖',
     bot_token_placeholder: '123456789:ABCDefGhIJKlmNo...',
+    
+    // Webhook Bot Logic & Analytics Additions
+    product_not_found: '❌ Such a product (or SKU) was not found in the warehouse. Please check the spelling and try again.',
+    multiple_products_found: '🤔 Which of the following products did you mean?',
+    select_warehouse: '🏢 Which warehouse would you like to operate in?',
+    select_product: '📦 Which product do you want to select?',
+    select_quantity: 'Please specify the quantity to deduct (or add):',
+    export_pdf: 'Export to PDF',
+    export_excel: 'Export to Excel',
+    group_analytics: 'Group Analytics',
+    top_contributors: 'Top Contributors',
+    total_deductions: 'Total Transactions',
+    analytics_desc: 'Detailed report of warehouse transactions made by group members.',
   },
 }
 

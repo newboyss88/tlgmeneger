@@ -358,6 +358,9 @@ export const translations = {
     error: 'Xatolik',
     loading: 'Yuklanmoqda...',
     no_data: 'Ma\'lumotlar topilmadi',
+    source: 'Manba',
+    note: 'Izoh',
+    deduct: 'Chiqim',
   },
   ru: {
     hero_title: 'Профессиональное Управление Вашим Telegram Ботом',
@@ -717,6 +720,9 @@ export const translations = {
     error: 'Ошибка',
     loading: 'Загрузка...',
     no_data: 'Данные не найдены',
+    source: 'Источник',
+    note: 'Примечание',
+    deduct: 'Расход',
   },
   en: {
     hero_title: 'Manage Your Telegram Bot Professionally',
@@ -1069,6 +1075,9 @@ export const translations = {
     loading: 'Loading...',
     no_data: 'No data found',
     also_found: 'There are also {count} more product(s) found. Please specify the exact name.',
+    source: 'Source',
+    note: 'Note',
+    deduct: 'Deduction',
   },
 }
 

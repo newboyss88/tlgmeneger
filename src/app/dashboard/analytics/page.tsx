@@ -10,8 +10,6 @@ import {
   CheckCircle2, Search, Filter
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import toast from 'react-hot-toast'
 
 export default function AnalyticsPage() {
@@ -59,9 +57,12 @@ export default function AnalyticsPage() {
     }
   }
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     if (!data || !data.rawTransactions) return;
     try {
+      const { jsPDF } = await import('jspdf')
+      const { default: autoTable } = await import('jspdf-autotable')
+      
       const doc = new jsPDF()
       
       doc.setFontSize(22)
@@ -79,9 +80,11 @@ export default function AnalyticsPage() {
         t.source
       ])
 
-      // @ts-ignore - autoTable might be imported as a plugin or function
-      if (typeof autoTable === 'function') {
-        autoTable(doc, {
+      // @ts-ignore
+      const tableFunc = typeof autoTable === 'function' ? autoTable : (autoTable as any).default;
+      
+      if (typeof tableFunc === 'function') {
+        tableFunc(doc, {
           startY: 40,
           head: [['Date', 'User', 'Product', 'SKU', 'Qty', 'Source']],
           body: tableData,

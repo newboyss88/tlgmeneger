@@ -6,10 +6,15 @@ import prisma from '@/lib/prisma'
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session || !(session.user as any).id) {
+      return NextResponse.json({ error: 'Unauthorized or Session ID missing' }, { status: 401 })
+    }
+
+    const userId = (session.user as any).id
+    console.log('[API BOT] Fetching bots for user:', userId)
 
     const bots = await prisma.bot.findMany({
-      where: { userId: (session.user as any).id },
+      where: { userId: userId },
       include: {
         groups: true,
         warehouses: { include: { products: true } },
@@ -18,9 +23,13 @@ export async function GET() {
     })
 
     return NextResponse.json(bots)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Bot GET error:', error)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Server error', 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }, { status: 500 })
   }
 }
 

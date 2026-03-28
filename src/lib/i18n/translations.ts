@@ -361,6 +361,7 @@ export const translations = {
     source: 'Manba',
     note: 'Izoh',
     deduct: 'Chiqim',
+    operations: 'ta amaliyot',
   },
   ru: {
     hero_title: 'Профессиональное Управление Вашим Telegram Ботом',
@@ -723,6 +724,7 @@ export const translations = {
     source: 'Источник',
     note: 'Примечание',
     deduct: 'Расход',
+    operations: 'операций',
   },
   en: {
     hero_title: 'Manage Your Telegram Bot Professionally',
@@ -1078,6 +1080,7 @@ export const translations = {
     source: 'Source',
     note: 'Note',
     deduct: 'Deduction',
+    operations: 'operations',
   },
 }
 

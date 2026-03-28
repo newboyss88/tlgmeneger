@@ -48,6 +48,14 @@ export default function WarehousePage() {
 
   const [bots, setBots] = useState<any[]>([])
 
+  // Delete confirmation modal state
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    type: 'warehouse' | 'product'
+    id: string
+    name: string
+  } | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const fetchWarehouses = async () => {
     try {
       const res = await fetch('/api/warehouse')
@@ -140,19 +148,8 @@ export default function WarehousePage() {
 
   const handleDeleteWarehouse = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
-    if (!window.confirm(t('delete_wh_confirm'))) return
-    try {
-      const res = await fetch(`/api/warehouse/${id}`, { method: 'DELETE' })
-      if (res.ok) {
-         toast.success(t('wh_deleted'))
-         if (selectedWarehouse === id) setSelectedWarehouse(null)
-         fetchWarehouses()
-      } else {
-         toast.error(t('delete_error'))
-      }
-    } catch {
-      toast.error(t('network_error'))
-    }
+    const wh = warehouses.find(w => w.id === id)
+    setDeleteConfirm({ type: 'warehouse', id, name: wh?.name || 'Sklad' })
   }
 
   const handleSaveProduct = async () => {
@@ -196,17 +193,35 @@ export default function WarehousePage() {
   }
 
   const handleDeleteProduct = async (id: string) => {
-    if (!window.confirm(t('delete_confirm'))) return
+    const product = currentWarehouse?.products.find(p => p.id === id)
+    setDeleteConfirm({ type: 'product', id, name: product?.name || 'Mahsulot' })
+  }
+
+  const executeDelete = async () => {
+    if (!deleteConfirm) return
+    setIsDeleting(true)
     try {
-      const res = await fetch(`/api/product/${id}`, { method: 'DELETE' })
+      const url = deleteConfirm.type === 'warehouse'
+        ? `/api/warehouse/${deleteConfirm.id}`
+        : `/api/product/${deleteConfirm.id}`
+      const res = await fetch(url, { method: 'DELETE' })
       if (res.ok) {
-         toast.success(t('product_deleted'))
-         fetchWarehouses()
+        toast.success(deleteConfirm.type === 'warehouse' ? t('wh_deleted') : t('product_deleted'))
+        if (deleteConfirm.type === 'warehouse' && selectedWarehouse === deleteConfirm.id) {
+          setSelectedWarehouse(null)
+        }
+        fetchWarehouses()
       } else {
-         toast.error(t('delete_error'))
+        const errData = await res.json().catch(() => ({}))
+        console.error('DELETE xatosi:', res.status, errData)
+        toast.error(errData.error || t('delete_error'))
       }
-    } catch {
+    } catch (err) {
+      console.error('DELETE network xatosi:', err)
       toast.error(t('network_error'))
+    } finally {
+      setIsDeleting(false)
+      setDeleteConfirm(null)
     }
   }
 
@@ -577,6 +592,49 @@ export default function WarehousePage() {
                   {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : showTransaction.type === 'IN' ? <ArrowUpCircle size={18} /> : <ArrowDownCircle size={18} />}
                   {showTransaction.type === 'IN' ? ' ' + t('confirm_income_btn') : ' ' + t('confirm_outcome_btn')}
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" onClick={() => !isDeleting && setDeleteConfirm(null)}>
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+              <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                <div style={{
+                  width: '56px', height: '56px', borderRadius: '50%', margin: '0 auto 16px',
+                  background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <AlertTriangle size={28} color="var(--error)" />
+                </div>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>
+                  {deleteConfirm.type === 'warehouse' ? t('delete_wh_confirm') : t('delete_confirm')}
+                </h3>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px' }}>
+                  <strong>&quot;{deleteConfirm.name}&quot;</strong>
+                  {deleteConfirm.type === 'warehouse' && (
+                    <span style={{ display: 'block', marginTop: '8px', color: 'var(--error)', fontSize: '13px' }}>
+                      ⚠️ {"Barcha mahsulotlar ham o'chib ketadi!"}
+                    </span>
+                  )}
+                </p>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                  <button className="btn btn-secondary" onClick={() => setDeleteConfirm(null)} disabled={isDeleting} style={{ flex: 1 }}>
+                    {t('cancel')}
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={executeDelete}
+                    disabled={isDeleting}
+                    style={{ flex: 1, background: 'var(--error)', color: 'white', border: 'none' }}
+                  >
+                    {isDeleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                    {' '}{t('delete') || "O'chirish"}
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

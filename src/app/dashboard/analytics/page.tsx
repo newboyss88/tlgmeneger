@@ -111,15 +111,15 @@ export default function AnalyticsPage() {
   const exportExcel = () => {
     if (!data || !data.rawTransactions) return;
     
-    const detailedData = data.rawTransactions.map((t: any) => ({
-      [t('date') || 'Sana']: new Date(t.createdAt).toLocaleString(),
-      [t('employee') || 'Xodim']: t.user,
-      [t('product') || 'Mahsulot']: t.productName,
-      'SKU': t.productSku || '',
-      [t('type') || 'Turi']: t.type === 'OUT' ? (t('deduct') || 'Chiqim') : (t('income') || 'Kirim'),
-      [t('quantity') || 'Miqdor']: t.quantity,
-      [t('source') || 'Manba']: t.source,
-      [t('note') || 'Izoh']: t.note || ''
+    const detailedData = data.rawTransactions.map((tx: any) => ({
+      [t('date') || 'Sana']: new Date(tx.createdAt).toLocaleString(),
+      [t('employee') || 'Xodim']: tx.user,
+      [t('product') || 'Mahsulot']: tx.productName,
+      'SKU': tx.productSku || '',
+      [t('type') || 'Turi']: tx.type === 'OUT' ? (t('deduct') || 'Chiqim') : (t('income') || 'Kirim'),
+      [t('quantity') || 'Miqdor']: tx.quantity,
+      [t('source') || 'Manba']: tx.source,
+      [t('note') || 'Izoh']: tx.note || ''
     }))
 
     const ws = XLSX.utils.json_to_sheet(detailedData)

@@ -7,6 +7,7 @@ import {
   MessageSquare, Settings, Power, Users, Hash, Plus, Trash2,
   CheckCircle, Save, Loader2, Edit2, X
 } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 
 export default function GroupPage() {
   const { t } = useLanguage()
@@ -15,7 +16,6 @@ export default function GroupPage() {
   const [bots, setBots] = useState<any[]>([])
   const [groups, setGroups] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   // Modals
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
@@ -54,9 +54,8 @@ export default function GroupPage() {
       ])
 
       if (botRes.ok) setBots(await botRes.json())
-      if (groupRes.ok) setGroups(await groupRes.json())
     } catch (err) {
-      showMsg('error', t('load_users_error'))
+      toast.error(t('load_users_error'))
     } finally {
       setLoading(false)
     }
@@ -92,20 +91,16 @@ export default function GroupPage() {
         setTotalMembers(data.totalCount || merged.length)
       }
     } catch (err) {
-      showMsg('error', t('load_users_error'))
+      toast.error(t('load_users_error'))
     } finally {
       setMembersLoading(false)
     }
   }
 
-  const showMsg = (type: 'success' | 'error', text: string) => {
-    setMessage({ type, text })
-    setTimeout(() => setMessage(null), 4000)
-  }
 
   const handleConnect = async () => {
     if (!newChatId || !selectedBotId) {
-      showMsg('error', t('select_bot_chatid_error'))
+      toast.error(t('select_bot_chatid_error'))
       return
     }
     
@@ -120,16 +115,16 @@ export default function GroupPage() {
       const data = await res.json()
 
       if (res.ok) {
-        showMsg('success', t('group_connected_success'))
+        toast.success(t('group_connected_success'))
         setIsConnectModalOpen(false)
         setNewChatId('')
         setSelectedBotId('')
         loadData()
       } else {
-        showMsg('error', data.error || t('group_connect_error'))
+        toast.error(data.error || t('group_connect_error'))
       }
     } catch {
-      showMsg('error', t('network_error'))
+      toast.error(t('network_error'))
     } finally {
       setIsConnecting(false)
     }
@@ -161,15 +156,15 @@ export default function GroupPage() {
       })
 
       if (res.ok) {
-        showMsg('success', t('saved_success_msg'))
+        toast.success(t('saved_success_msg'))
         setIsEditModalOpen(false)
         loadData()
       } else {
         const data = await res.json()
-        showMsg('error', data.error || t('edit_error'))
+        toast.error(data.error || t('edit_error'))
       }
     } catch {
-      showMsg('error', t('network_error'))
+      toast.error(t('network_error'))
     } finally {
       setIsSaving(false)
     }
@@ -195,14 +190,14 @@ export default function GroupPage() {
            body: JSON.stringify({ groupId: selectedGroupForMembers?.id })
         })
         if (res.ok) {
-           showMsg('success', t('kick_success'))
+           toast.success(t('kick_success'))
            loadMembers(selectedGroupForMembers)
         } else {
            const d = await res.json()
-           showMsg('error', d.error || t('action_error'))
+           toast.error(d.error || t('action_error'))
         }
      } catch (e) {
-        showMsg('error', t('network_error'))
+        toast.error(t('network_error'))
      }
   }
 
@@ -211,7 +206,7 @@ export default function GroupPage() {
     if (!confirm(`"${group.title}" ${t('delete_group_confirm')}`)) return
     try {
       // Assuming a DELETE /api/group?id=... will be implemented or exist
-      showMsg('error', t('delete_group_api_error'))
+      toast.error(t('delete_group_api_error'))
     } catch {}
   }
 
@@ -238,18 +233,6 @@ export default function GroupPage() {
           <Plus size={18} /> {t('group_connect')}
         </button>
       </div>
-
-      {message && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{
-          padding: '14px 20px', borderRadius: 'var(--radius-md)',
-          background: message.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-          border: `1px solid ${message.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-          color: message.type === 'success' ? 'var(--success)' : 'var(--error)',
-          fontSize: '14px', fontWeight: '500',
-        }}>
-          {message.text}
-        </motion.div>
-      )}
 
       {/* Grid of Groups */}
       {loading ? (

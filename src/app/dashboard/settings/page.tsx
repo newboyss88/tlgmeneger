@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useSettings } from '@/lib/SettingsContext'
+import { toast } from 'react-hot-toast'
 
 export default function SettingsPage() {
   const { t, language, setLanguage } = useLanguage()
@@ -29,7 +30,6 @@ export default function SettingsPage() {
     appName: 'TelegramManager',
   })
   const [loading, setLoading] = useState(false)
-  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     loadSettings()
@@ -60,7 +60,6 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setLoading(true)
-    setSaved(false)
     try {
       const res = await fetch('/api/settings', {
         method: 'PUT',
@@ -69,12 +68,14 @@ export default function SettingsPage() {
       })
 
       if (res.ok) {
-        setSaved(true)
+        toast.success(t('saved_success'))
         await refreshSettings()
-        setTimeout(() => setSaved(false), 3000)
+      } else {
+        toast.error(t('profil_error'))
       }
     } catch (err) {
       console.error('Failed to save settings:', err)
+      toast.error(t('network_error'))
     } finally {
       setLoading(false)
     }
@@ -116,17 +117,6 @@ export default function SettingsPage() {
         <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '4px' }}>{t('settings')}</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{t('platform_settings')}</p>
       </div>
-
-      {saved && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{
-          padding: '14px 20px', borderRadius: 'var(--radius-md)',
-          background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)',
-          color: 'var(--success)', fontSize: '14px', fontWeight: '500',
-          display: 'flex', alignItems: 'center', gap: '8px',
-        }}>
-          <CheckCircle size={18} /> {t('saved_success')}
-        </motion.div>
-      )}
 
       {/* General Settings */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card">

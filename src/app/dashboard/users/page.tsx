@@ -55,6 +55,8 @@ export default function UsersPage() {
 
   const [messageText, setMessageText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<UserItem | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchUsers = async () => {
     try {
@@ -132,19 +134,27 @@ export default function UsersPage() {
   }
 
   // DELETE USER
-  const deleteUser = async (user: UserItem) => {
-    if (!confirm(t('delete_confirm_user'))) return
+  const deleteUser = (user: UserItem) => {
+    setUserToDelete(user)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return
+    setIsDeleting(true)
     try {
-      const res = await fetch(`/api/users/${user.id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/users/${userToDelete.id}`, { method: 'DELETE' })
       if (res.ok) {
         toast.success(t('delete_success'))
-        setUsers(users.filter(u => u.id !== user.id))
+        setUsers(users.filter(u => u.id !== userToDelete.id))
+        setUserToDelete(null)
       } else {
         const data = await res.json()
         toast.error(data.error || t('action_error'))
       }
     } catch (e) {
       toast.error(t('action_error'))
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -204,11 +214,9 @@ export default function UsersPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div>
-      <div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '4px' }}>{t('users')}</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{t('users_page_desc')}</p>
-      </div>
       </div>
 
       {/* Stats */}
@@ -332,10 +340,12 @@ export default function UsersPage() {
                         style={{ width: '32px', height: '32px', color: user.isBlocked ? 'var(--success)' : 'var(--warning)', background: user.isBlocked ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', borderRadius: 'var(--radius-sm)' }} title={user.isBlocked ? t('unblock') : t('block')}
                       >{user.isBlocked ? <UserCheck size={14} /> : <Ban size={14} />}</button>
                       
-                      <button
-                        className="btn btn-icon btn-sm" onClick={() => deleteUser(user)}
-                        style={{ width: '32px', height: '32px', color: 'var(--accent-rose)', background: 'rgba(244, 63, 94, 0.1)', borderRadius: 'var(--radius-sm)' }} title={t('delete')}
-                      ><Trash2 size={14} /></button>
+                      {isSuperAdmin && (
+                        <button
+                          className="btn btn-icon btn-sm" onClick={() => deleteUser(user)}
+                          style={{ width: '32px', height: '32px', color: 'var(--accent-rose)', background: 'rgba(244, 63, 94, 0.1)', borderRadius: 'var(--radius-sm)' }} title={t('delete')}
+                        ><Trash2 size={14} /></button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -495,6 +505,31 @@ export default function UsersPage() {
 
                 </div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Custom Delete Confirmation Modal */}
+      <AnimatePresence>
+        {userToDelete && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" onClick={() => !isDeleting && setUserToDelete(null)}>
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="modal" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <UserX size={32} color="var(--error)" />
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>{t('delete_confirm_user')}</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
+                {userToDelete.name} ({userToDelete.email}) {t('delete_user_warning') || 'ushbu foydalanuvchini platformadan butunlay o\'chirib tashlaysizmi?'}
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <button className="btn btn-secondary" onClick={() => setUserToDelete(null)} disabled={isDeleting}>
+                  {t('cancel')}
+                </button>
+                <button className="btn btn-primary" style={{ background: 'var(--error)' }} onClick={handleConfirmDelete} disabled={isDeleting}>
+                  {isDeleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />} {t('delete')}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

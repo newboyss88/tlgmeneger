@@ -7,6 +7,7 @@ import {
   MessageSquare, Key, CheckCircle, Save, Loader2, Users, Ban, X
 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { toast } from 'react-hot-toast'
 
 export default function BotPage() {
   const { t } = useLanguage()
@@ -14,7 +15,6 @@ export default function BotPage() {
   // State for list of bots
   const [bots, setBots] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   // State for modals
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -47,16 +47,12 @@ export default function BotPage() {
         setBots(await res.json())
       }
     } catch (err) {
-      showMsg('error', t('load_bots_error'))
+      toast.error(t('load_bots_error'))
     } finally {
       setLoading(false)
     }
   }
 
-  const showMsg = (type: 'success' | 'error', text: string) => {
-    setMessage({ type, text })
-    setTimeout(() => setMessage(null), 4000)
-  }
 
   const openNewBotModal = () => {
     setSelectedBot(null)
@@ -90,7 +86,7 @@ export default function BotPage() {
         setMembers(await res.json())
       }
     } catch {
-      showMsg('error', t('load_members_error'))
+      toast.error(t('load_members_error'))
     } finally {
       setMembersLoading(false)
     }
@@ -101,20 +97,17 @@ export default function BotPage() {
     try {
       const res = await fetch(`/api/bot?id=${botId}`, { method: 'DELETE' })
       if (res.ok) {
-        showMsg('success', t('bot_deleted'))
-        loadBots()
       } else {
-        showMsg('error', t('delete_error'))
+        toast.error(t('delete_error'))
       }
     } catch {
-      showMsg('error', t('network_error'))
+      toast.error(t('network_error'))
     }
   }
 
   const handleConnectAndSave = async () => {
     if (!botToken) return
     setIsSaving(true)
-    setMessage(null)
 
     try {
       // 1. Verify token with Telegram API
@@ -122,7 +115,7 @@ export default function BotPage() {
       const telegramData = await telegramRes.json()
 
       if (!telegramData.ok) {
-        showMsg('error', t('invalid_token_error'))
+        toast.error(t('invalid_token_error'))
         setIsSaving(false)
         return
       }
@@ -165,15 +158,15 @@ export default function BotPage() {
           })
         }
 
-        showMsg('success', `✅ @${tgUsername} ${t('bot_connected_success')}`)
+        toast.success(`✅ @${tgUsername} ${t('bot_connected_success')}`)
         setIsModalOpen(false)
         loadBots()
       } else {
         const data = await res.json()
-        showMsg('error', data.error || t('profil_error'))
+        toast.error(data.error || t('profil_error'))
       }
     } catch (err) {
-      showMsg('error', t('network_error'))
+      toast.error(t('network_error'))
     } finally {
       setIsSaving(false)
     }
@@ -201,7 +194,7 @@ export default function BotPage() {
         setMembers(members.map(x => x.id === m.id ? { ...x, isBanned: !x.isBanned } : x))
       }
     } catch {
-      showMsg('error', t('network_error'))
+      toast.error(t('network_error'))
     }
   }
 
@@ -216,18 +209,6 @@ export default function BotPage() {
           <Plus size={18} /> {t('add_new_bot')}
         </button>
       </div>
-
-      {message && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{
-          padding: '14px 20px', borderRadius: 'var(--radius-md)',
-          background: message.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-          border: `1px solid ${message.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-          color: message.type === 'success' ? 'var(--success)' : 'var(--error)',
-          fontSize: '14px', fontWeight: '500',
-        }}>
-          {message.text}
-        </motion.div>
-      )}
 
       {loading ? (
         <div style={{ padding: '40px', textAlign: 'center' }}>

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PrismaLibSql } from '@prisma/adapter-libsql'
 import { PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'

@@ -3,8 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -15,7 +16,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 
     const product = await prisma.product.update({
-      where: { id: params.id },
+      where: { id },
       data: { name, sku, price: Number(price), unit, minQuantity: Number(minQuantity) },
     })
 
@@ -36,20 +37,21 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     await prisma.product.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     await prisma.auditLog.create({
       data: {
         action: 'DELETE',
         entity: 'Product',
-        entityId: params.id,
+        entityId: id,
         details: '{}',
         userId: (session.user as any).id,
       },

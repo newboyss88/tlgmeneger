@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password        String
+  name            String
+  avatar          String?
+  phone           String?
+  telegramId      String?
+  role            String    @default("ADMIN") // SUPER_ADMIN, ADMIN, MANAGER, VIEWER
+  isBlocked       Boolean   @default(false)
+  twoFactorEnabled Boolean  @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  bots            Bot[]
+  auditLogs       AuditLog[]
+  settings        Setting[]
+  transactions    Transaction[]
+}
+
+model Bot {
+  id              String    @id @default(uuid())
+  token           String
+  username        String?
+  name            String?
+  avatar          String?
+  description     String?
+  welcomeMessage  String    @default("Assalomu alaykum! Botga xush kelibsiz! 🤖")
+  isActive        Boolean   @default(false)
+  webhookUrl      String?
+  settings        String?   // JSON string
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groups          Group[]
+  warehouses      Warehouse[]
+  telegramUsers   TelegramUser[]
+
+  @@index([userId])
+}
+
+model TelegramUser {
+  id        String   @id @default(uuid())
+  telegramId String  // The user's Telegram ID
+  username  String?
+  firstName String?
+  lastName  String?
+  isGroup   Boolean  @default(false) // true if this record represents a group chat rather than a direct user (though we handle groups in Group model, sometimes useful)
+  source    String   @default("BOT") // BOT or GROUP
+  isBanned  Boolean  @default(false) // Whether banned in DB
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  botId     String
+  bot       Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@unique([botId, telegramId])
+  @@index([botId])
+}
+
+model Group {
+  id              String    @id @default(uuid())
+  chatId          String    @unique
+  title           String?
+  type            String?   // group, supergroup, channel
+  inviteLink      String?
+  isActive        Boolean   @default(false)
+  autoReply       Boolean   @default(false)
+  settings        String?   // JSON string
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  botId           String
+  bot             Bot       @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@index([botId])
+}
+
+model Warehouse {
+  id              String    @id @default(uuid())
+  name            String
+  description     String?
+  location        String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  botId           String
+  bot             Bot       @relation(fields: [botId], references: [id], onDelete: Cascade)
+  products        Product[]
+
+  @@index([botId])
+}
+
+model Product {
+  id              String    @id @default(uuid())
+  name            String
+  sku             String?
+  quantity         Int       @default(0)
+  price           Float     @default(0)
+  unit            String    @default("dona") // dona, kg, litr, metr
+  minQuantity     Int       @default(0)
+  image           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  warehouseId     String
+  warehouse       Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+
+  @@index([warehouseId])
+}
+
+model Transaction {
+  id              String    @id @default(uuid())
+  type            String    // IN, OUT
+  quantity        Int
+  note            String?
+  source          String    @default("MANUAL") // MANUAL, BOT, GROUP
+  createdAt       DateTime  @default(now())
+
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId          String?
+  user            User?     @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+  @@index([userId])
+}
+
+model AuditLog {
+  id              String    @id @default(uuid())
+  action          String    // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, etc.
+  entity          String    // User, Bot, Group, Warehouse, Product, etc.
+  entityId        String?
+  details         String?   // JSON string
+  ipAddress       String?
+  createdAt       DateTime  @default(now())
+
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([entity])
+}
+
+model Setting {
+  id              String    @id @default(uuid())
+  key             String
+  value           String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId])
+}

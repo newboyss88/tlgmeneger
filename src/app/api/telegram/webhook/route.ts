@@ -12,7 +12,12 @@ export async function POST(request: Request) {
     }
 
     const chatId = message.chat.id
-    const text = (message.text || '').trim()
+    const rawText = (message.text || '').trim()
+    const cleanText = rawText.match(/^\/[a-zA-Z0-9_]+(@[a-zA-Z0-9_]+)?$/) 
+      ? rawText.split('@')[0] 
+      : rawText
+    
+    const text = cleanText.toLowerCase()
     const chatType = message.chat.type
 
     const { searchParams } = new URL(request.url)

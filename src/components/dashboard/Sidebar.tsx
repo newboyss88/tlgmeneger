@@ -79,7 +79,12 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
         {menuItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+          // Eng aniq (eng uzun) mos keluvchini topamiz
+          const activeItem = menuItems
+            .filter(i => pathname === i.href || pathname.startsWith(i.href + '/'))
+            .sort((a, b) => b.href.length - a.href.length)[0]
+          
+          const isActive = activeItem?.href === item.href
 
           return (
             <Link

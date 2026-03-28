@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export async function POST(request: Request) {
@@ -66,64 +66,64 @@ export async function POST(request: Request) {
 
       if (tgUser.isBanned) {
         if (chatType === 'private' && !callbackQuery) {
-           await sendTelegramMessage(botToken, chatId, '\u26d4 Siz bloklangansiz.')
+           await sendTelegramMessage(botToken, chatId, '⛔ Siz bloklangansiz.')
         }
         return NextResponse.json({ ok: true })
       }
     }
 
-    // LINGUISTIC SETTINGS - Priority: Group Config > Bot Config > Default
-    let lng: 'uz' | 'ru' | 'en' = (bot.language as 'uz' | 'ru' | 'en') || 'uz';
+    // LINGUISTIC SETTINGS - Priority: Group Config > Bot Config > User TG Language
+    let lng = bot.language as 'uz' | 'ru' | 'en' || 'uz';
     
     if (chatType === 'group' || chatType === 'supergroup') {
        const group = bot.groups.find((g: any) => String(g.chatId) === String(chatId));
        if (group && group.language) {
           lng = group.language as 'uz' | 'ru' | 'en';
        }
+    } else {
+       const userLang = fromUser?.language_code;
+       if (userLang && ['uz', 'ru', 'en'].includes(userLang)) {
+          // If we want to strictly follow user's TG language, uncomment:
+          // lng = userLang as 'uz' | 'ru' | 'en';
+       }
     }
     
     const dict = {
       uz: {
         autoDeduct: 'Avto-chiqim', product: 'Mahsulot', deduct: 'Chiqim', income: 'Kirim', newBalance: 'Yangi qoldiq',
-        statusLow: 'Yana kam qoldi!', statusOk: 'Yetarli', needQtyMsg: 'Chiqim uchun aniq nom va sonni yozing. Masalan: "{name} 1ta"',
+        statusLow: 'Yana kam qoldi!', statusOk: 'Yetarli', needQtyMsg: 'Skladdan amaliyot uchun sonni kiriting. Masalan: "{name} 1ta"',
         price: 'Narx', balance: 'Qoldiq',
-        product_not_found: '\u274c Bunday mahsulot (yoki SKU) omborda topilmadi. Nomini yoki SKU kodini tekshirib qaytadan urinib ko\'ring.',
-        multiple_products_found: '\ud83e\udd14 Quyidagi mahsulotlardan qaysi birini nazarda tutdingiz?',
-        select_warehouse: '\ud83c\udfe2 Qaysi ombordan amaliyot bajaramiz?',
-        select_product: '\ud83d\udce6 Qaysi mahsulotni tanlaysiz?',
+        product_not_found: '❌ Bunday mahsulot (yoki SKU) omborda topilmadi. Nomini yoki SKU kodini tekshirib qaytadan urinib ko\'ring.',
+        multiple_products_found: '🤔 Quyidagi mahsulotlardan qaysi birini nazarda tutdingiz?',
+        select_warehouse: '🏢 Qaysi ombordan amaliyot bajaramiz?',
+        select_product: '📦 Qaysi mahsulotni tanlaysiz?',
         select_quantity: 'Nechta chiqim (yoki kirim) qilasiz?',
-        back: '\u25c0\ufe0f Ortga', cancel: 'Bekor qilish',
-        also_found: 'Xuddi shunday yana {count} ta mahsulot bor. Aniq nomini yozing.',
-        help_text: '\ud83e\udd16 *Bot buyruqlari:*\n\n/menu \u2014 \ud83d\udd79 Interaktiv boshqaruv menyusi\n/sklad \u2014 \ud83c\udfe2 Omborxonalar ro\'yxati\n\n\ud83d\udcdd Guruhda aniq mahsulot nomi yoki SKU bilan chiqim qiling.\nMasalan: "HP-CF217A 1ta"',
-        operation_success: '\u2705 Operatsiya muvaffaqiyatli:'
+        back: '◀️ Ortga', cancel: 'Bekor qilish',
+        also_found: 'Xuddi shunday yana {count} ta mahsulot bor. Aniq nomini yozing.'
       },
       ru: {
-        autoDeduct: '\u0410\u0432\u0442\u043e-\u0441\u043f\u0438\u0441\u0430\u043d\u0438\u0435', product: '\u0422\u043e\u0432\u0430\u0440', deduct: '\u0421\u043f\u0438\u0441\u0430\u043d\u0438\u0435', income: '\u041f\u0440\u0438\u0445\u043e\u0434', newBalance: '\u041d\u043e\u0432\u044b\u0439 \u043e\u0441\u0442\u0430\u0442\u043e\u043a',
-        statusLow: '\u041c\u0430\u043b\u043e \u0432 \u043d\u0430\u043b\u0438\u0447\u0438\u0438!', statusOk: '\u0414\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e', needQtyMsg: '\u0414\u043b\u044f \u0441\u043f\u0438\u0441\u0430\u043d\u0438\u044f \u0443\u043a\u0430\u0436\u0438\u0442\u0435 \u0442\u043e\u0447\u043d\u043e\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u0438 \u043a\u043e\u043b-\u0432\u043e. \u041d\u0430\u043f\u0440\u0438\u043c\u0435\u0440: "{name} 1\u0448\u0442"',
-        price: '\u0426\u0435\u043d\u0430', balance: '\u041e\u0441\u0442\u0430\u0442\u043e\u043a',
-        product_not_found: '\u274c \u0422\u0430\u043a\u043e\u0439 \u0442\u043e\u0432\u0430\u0440 (\u0438\u043b\u0438 \u0430\u0440\u0442\u0438\u043a\u0443\u043b) \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d \u043d\u0430 \u0441\u043a\u043b\u0430\u0434\u0435. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u043f\u0440\u0430\u0432\u0438\u043b\u044c\u043d\u043e\u0441\u0442\u044c \u043d\u0430\u043f\u0438\u0441\u0430\u043d\u0438\u044f.',
-        multiple_products_found: '\ud83e\udd14 \u041a\u0430\u043a\u043e\u0439 \u0438\u043c\u0435\u043d\u043d\u043e \u0438\u0437 \u044d\u0442\u0438\u0445 \u0442\u043e\u0432\u0430\u0440\u043e\u0432 \u0432\u044b \u0438\u043c\u0435\u043b\u0438 \u0432 \u0432\u0438\u0434\u0443?',
-        select_warehouse: '\ud83c\udfe2 \u0421 \u043a\u0430\u043a\u0438\u043c \u0441\u043a\u043b\u0430\u0434\u043e\u043c \u0431\u0443\u0434\u0435\u043c \u0440\u0430\u0431\u043e\u0442\u0430\u0442\u044c?',
-        select_product: '\ud83d\udce6 \u041a\u0430\u043a\u043e\u0439 \u043f\u0440\u043e\u0434\u0443\u043a\u0442 \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435?',
-        select_quantity: '\u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u043a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u043e \u0434\u043b\u044f \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u0438:',
-        back: '\u25c0\ufe0f \u041d\u0430\u0437\u0430\u0434', cancel: '\u041e\u0442\u043c\u0435\u043d\u0430',
-        also_found: '\u0422\u0430\u043a\u0436\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e \u0435\u0449\u0451 {count} \u0442\u043e\u0432\u0430\u0440(\u043e\u0432). \u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u0442\u043e\u0447\u043d\u043e\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435.',
-        help_text: '\ud83e\udd16 *\u041a\u043e\u043c\u0430\u043d\u0434\u044b \u0431\u043e\u0442\u0430:*\n\n/menu \u2014 \ud83d\udd79 \u0418\u043d\u0442\u0435\u0440\u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0435 \u043c\u0435\u043d\u044e \u0443\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u044f\n/sklad \u2014 \ud83c\udfe2 \u0421\u043f\u0438\u0441\u043e\u043a \u0441\u043a\u043b\u0430\u0434\u043e\u0432\n\n\ud83d\udcdd \u0414\u043b\u044f \u0441\u043f\u0438\u0441\u0430\u043d\u0438\u044f \u0443\u043a\u0430\u0436\u0438\u0442\u0435 \u0442\u043e\u0447\u043d\u043e\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u0438\u043b\u0438 \u0430\u0440\u0442\u0438\u043a\u0443\u043b \u0442\u043e\u0432\u0430\u0440\u0430.\n\u041f\u0440\u0438\u043c\u0435\u0440: "HP-CF217A 1\u0448\u0442"',
-        operation_success: '\u2705 \u041e\u043f\u0435\u0440\u0430\u0446\u0438\u044f \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0430:'
+        autoDeduct: 'Авто-списание', product: 'Товар', deduct: 'Списание', income: 'Приход', newBalance: 'Новый остаток',
+        statusLow: 'Мало в наличии!', statusOk: 'Достаточно', needQtyMsg: 'Для списания укажите количество. Например: "{name} 1шт"',
+        price: 'Цена', balance: 'Остаток',
+        product_not_found: '❌ Такой товар (или артикул) не найден на складе. Проверьте правильность написания.',
+        multiple_products_found: '🤔 Какой именно из этих товаров вы имели в виду?',
+        select_warehouse: '🏢 С каким складом будем работать?',
+        select_product: '📦 Какой продукт выберите?',
+        select_quantity: 'Укажите количество для операции:',
+        back: '◀️ Назад', cancel: 'Отмена',
+        also_found: 'Также найдено ещё {count} товар(ов). Укажите точное название.'
       },
       en: {
         autoDeduct: 'Auto-deduction', product: 'Product', deduct: 'Deducted', income: 'Added', newBalance: 'New balance',
-        statusLow: 'Running low!', statusOk: 'In stock', needQtyMsg: 'To deduct, specify the exact name and quantity. E.g: "{name} 1pcs"',
+        statusLow: 'Running low!', statusOk: 'In stock', needQtyMsg: 'To deduct, please specify the quantity. E.g: "{name} 1pcs"',
         price: 'Price', balance: 'Balance',
-        product_not_found: '\u274c Such a product (or SKU) was not found in the warehouse. Please check the spelling.',
-        multiple_products_found: '\ud83e\udd14 Which of the following products did you mean?',
-        select_warehouse: '\ud83c\udfe2 Which warehouse would you like to operate in?',
-        select_product: '\ud83d\udce6 Which product do you want to select?',
+        product_not_found: '❌ Such a product (or SKU) was not found in the warehouse. Please check the spelling.',
+        multiple_products_found: '🤔 Which of the following products did you mean?',
+        select_warehouse: '🏢 Which warehouse would you like to operate in?',
+        select_product: '📦 Which product do you want to select?',
         select_quantity: 'Please specify the quantity:',
-        back: '\u25c0\ufe0f Back', cancel: 'Cancel',
-        also_found: 'There are also {count} more product(s) found. Please specify the exact name.',
-        help_text: '\ud83e\udd16 *Bot commands:*\n\n/menu \u2014 \ud83d\udd79 Interactive control menu\n/sklad \u2014 \ud83c\udfe2 Warehouse list\n\n\ud83d\udcdd To deduct, type the exact product name or SKU with quantity.\nExample: "HP-CF217A 1pcs"',
-        operation_success: '\u2705 Operation completed:'
+        back: '◀️ Back', cancel: 'Cancel',
+        also_found: 'There are also {count} more product(s) found. Please specify the exact name.'
       }
     };
     const t = dict[lng] || dict['uz'];
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
       const data = callbackQuery.data;
       
       if (data === 'menu') {
-        const buttons = bot.warehouses.map((w: any) => [{ text: `\ud83c\udfe2 ${w.name}`, callback_data: `wh_${w.id}` }]);
+        const buttons = bot.warehouses.map((w: any) => [{ text: `🏢 ${w.name}`, callback_data: `wh_${w.id}` }]);
         await sendTelegramMessage(botToken, chatId, `*${t.select_warehouse}*`, 'Markdown', { inline_keyboard: buttons });
         return NextResponse.json({ ok: true })
       }
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
         const wId = data.replace('wh_', '');
         const wh = bot.warehouses.find((w: any) => w.id === wId);
         if (wh) {
-            const buttons = wh.products.slice(0, 50).map((p: any) => [{ text: `\ud83d\udce6 ${p.name} (${p.quantity} ${p.unit})`, callback_data: `pr_${p.id}` }]);
+            const buttons = wh.products.slice(0, 50).map((p: any) => [{ text: `📦 ${p.name} (${p.quantity} ${p.unit})`, callback_data: `pr_${p.id}` }]);
             buttons.push([{ text: t.back, callback_data: 'menu' }]);
             await sendTelegramMessage(botToken, chatId, `*${wh.name}*\n\n${t.select_product}`, 'Markdown', { inline_keyboard: buttons });
         }
@@ -161,18 +161,18 @@ export async function POST(request: Request) {
         if (pr) {
             const buttons = [
               [
-                { text: `\ud83d\udcc9 -1`, callback_data: `act_out_1_${pr.id}` },
-                { text: `\ud83d\udcc9 -5`, callback_data: `act_out_5_${pr.id}` },
-                { text: `\ud83d\udcc9 -10`, callback_data: `act_out_10_${pr.id}` }
+                { text: `📉 -1`, callback_data: `act_out_1_${pr.id}` },
+                { text: `📉 -5`, callback_data: `act_out_5_${pr.id}` },
+                { text: `📉 -10`, callback_data: `act_out_10_${pr.id}` }
               ],
               [
-                { text: `\ud83d\udcc8 +1`, callback_data: `act_in_1_${pr.id}` },
-                { text: `\ud83d\udcc8 +5`, callback_data: `act_in_5_${pr.id}` },
-                { text: `\ud83d\udcc8 +10`, callback_data: `act_in_10_${pr.id}` }
+                { text: `📈 +1`, callback_data: `act_in_1_${pr.id}` },
+                { text: `📈 +5`, callback_data: `act_in_5_${pr.id}` },
+                { text: `📈 +10`, callback_data: `act_in_10_${pr.id}` }
               ],
               [{ text: t.back, callback_data: `wh_${pr.warehouseId}` }]
             ];
-            const msg = `\ud83d\udcf1 *${pr.name}*\n\ud83c\udfe2 ${pr.warehouseName}\n\ud83d\udce6 ${t.balance}: *${pr.quantity}* ${pr.unit}\n\n${t.select_quantity}`;
+            const msg = `📱 *${pr.name}*\n🏢 ${pr.warehouseName}\n📦 ${t.balance}: *${pr.quantity}* ${pr.unit}\n\n${t.select_quantity}`;
             await sendTelegramMessage(botToken, chatId, msg, 'Markdown', { inline_keyboard: buttons });
         }
         return NextResponse.json({ ok: true })
@@ -203,9 +203,9 @@ export async function POST(request: Request) {
               }
             });
 
-            const status = newQuantity <= pr.minQuantity ? `\ud83d\udd34 ${t.statusLow}` : `\ud83d\udfe2 ${t.statusOk}`;
-            const pType = type === 'OUT' ? `\ud83d\udcc9 ${t.deduct}` : `\ud83d\udcc8 ${t.income}`;
-            const msg = `${t.operation_success}\n\ud83d\udcf1 ${t.product}: *${pr.name}*\n${pType}: *${actualQty}* ${pr.unit}\n\ud83d\udce6 ${t.newBalance}: *${newQuantity}* ${pr.unit}\n${status}`;
+            const status = newQuantity <= pr.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
+            const pType = type === 'OUT' ? `📉 ${t.deduct}` : `📈 ${t.income}`;
+            const msg = `✅ *Operatsiya muvaffaqiyatli:*\n📱 ${t.product}: *${pr.name}*\n${pType}: *${actualQty}* ${pr.unit}\n📦 ${t.newBalance}: *${newQuantity}* ${pr.unit}\n${status}`;
             await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
         }
         return NextResponse.json({ ok: true })
@@ -218,12 +218,18 @@ export async function POST(request: Request) {
     if (!text) return NextResponse.json({ ok: true });
 
     if (text === '/start' || text === '/yordam' || text === '/help') {
-      await sendTelegramMessage(botToken, chatId, t.help_text, 'Markdown')
+      const helpText = `🤖 *Bot buyruqlari:*\n\n` +
+        `/menu — 🕹 Interaktiv boshqaruv pulti\n` +
+        `/sklad — 🏢 Skladlar ro'yxati\n` +
+        `/mahsulot [nom] — 🔍 Mahsulot izlash\n` +
+        `/qoldiq [nom] — 📊 Qoldiqni tekshirish\n\n` +
+        `📝 Guruhda qisqacha nom bilan sписание ham ishlaydi (Masalan: 'Toner 1 шт')!`;
+      await sendTelegramMessage(botToken, chatId, helpText, 'Markdown')
       return NextResponse.json({ ok: true })
     }
 
     if (text === '/menu' || text === '/sklad') {
-       const buttons = bot.warehouses.map((w: any) => [{ text: `\ud83c\udfe2 ${w.name}`, callback_data: `wh_${w.id}` }]);
+       const buttons = bot.warehouses.map((w: any) => [{ text: `🏢 ${w.name}`, callback_data: `wh_${w.id}` }]);
        await sendTelegramMessage(botToken, chatId, `*${t.select_warehouse}*`, 'Markdown', { inline_keyboard: buttons });
        return NextResponse.json({ ok: true })
     }
@@ -239,7 +245,7 @@ export async function POST(request: Request) {
     if (canProcessText && !text.startsWith('/')) {
         const numMatch = text.match(/(\d+)/);
         const qtyToSubtract = numMatch ? parseInt(numMatch[1], 10) : 0;
-        const nameQuery = text.replace(/\d+/g, '').replace(/(ta|sht|\u0448\u0442|dona|d|pcs|\u0448\u0442\u0443\u043a\u0438|\u0448\u0442\u0443\u043a)/gi, '').replace(/[?!.,\-]/g, ' ').trim().toLowerCase();
+        const nameQuery = text.replace(/\d+/g, '').replace(/(ta|sht|шт|dona|d|pcs|штуки|штук)/gi, '').replace(/[?!.,\-]/g, ' ').trim().toLowerCase();
 
         if (nameQuery.length > 2) {
             const found = allProducts.filter((p: any) => 
@@ -268,18 +274,18 @@ export async function POST(request: Request) {
                  }
                });
 
-               const status = newQuantity <= product.minQuantity ? `\ud83d\udd34 ${t.statusLow}` : `\ud83d\udfe2 ${t.statusOk}`;
-               const msg = `\u2705 *${t.autoDeduct}:*\n\ud83d\udcf1 ${t.product}: *${product.name}*\n\ud83d\udce6 ${t.deduct}: *${actualDeduct}* ${product.unit}\n\ud83d\udcc9 ${t.newBalance}: *${newQuantity}* ${product.unit}\n${status}`;
+               const status = newQuantity <= product.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
+               const msg = `✅ *${t.autoDeduct}:*\n📱 ${t.product}: *${product.name}*\n📦 ${t.deduct}: *${actualDeduct}* ${product.unit}\n📉 ${t.newBalance}: *${newQuantity}* ${product.unit}\n${status}`;
                await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
             } else if (found.length > 1 && qtyToSubtract > 0) {
-               const buttons = found.slice(0, 8).map((p: any) => [{ text: `${p.name} (${t.balance}: ${p.quantity})`, callback_data: `act_out_${qtyToSubtract}_${p.id}` }]);
+               const buttons = found.slice(0, 8).map((p: any) => [{ text: `${p.name} (Qoldiq: ${p.quantity})`, callback_data: `act_out_${qtyToSubtract}_${p.id}` }]);
                await sendTelegramMessage(botToken, chatId, `*${t.multiple_products_found}*`, 'Markdown', { inline_keyboard: buttons });
             } else if (found.length > 0 && qtyToSubtract === 0) {
                const product = found[0];
-               const status = product.quantity <= product.minQuantity ? `\ud83d\udd34 ${t.statusLow}` : `\ud83d\udfe2 ${t.statusOk}`;
-               let msg = `\ud83d\udcf1 *${product.name}*\n\ud83d\udce6 ${t.balance}: *${product.quantity}* ${product.unit}\n\ud83d\udcb0 ${t.price}: ${new Intl.NumberFormat('uz-UZ').format(product.price)}\n${status}`;
+               const status = product.quantity <= product.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
+               let msg = `📱 *${product.name}*\n📦 ${t.balance}: *${product.quantity}* ${product.unit}\n💰 ${t.price}: ${new Intl.NumberFormat('uz-UZ').format(product.price)}\n${status}`;
                if (found.length > 1) msg += `\n\n_(${t.also_found.replace('{count}', String(found.length - 1))})_`;
-               msg += `\n\n_\ud83d\udca1 ${t.needQtyMsg.replace('{name}', product.name)}_`;
+               msg += `\n\n_💡 ${t.needQtyMsg.replace('{name}', product.name)}_`;
                await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
             }
         }

@@ -28,7 +28,7 @@ export default function BotPage() {
   const [welcomeMessage, setWelcomeMessage] = useState(t('welcome_msg_default'))
   const [botDescription, setBotDescription] = useState('')
   const [botAvatar, setBotAvatar] = useState<string | null>(null)
-  const [botLanguage, setBotLanguage] = useState('uz')
+
   const [isSaving, setIsSaving] = useState(false)
   
   // State for members
@@ -63,7 +63,7 @@ export default function BotPage() {
     setWelcomeMessage(t('welcome_msg_default'))
     setBotDescription('')
     setBotAvatar(null)
-    setBotLanguage('uz')
+
     setIsModalOpen(true)
   }
 
@@ -75,7 +75,7 @@ export default function BotPage() {
     setWelcomeMessage(bot.welcomeMessage || '')
     setBotDescription(bot.description || '')
     setBotAvatar(bot.avatar || null)
-    setBotLanguage(bot.language || 'uz')
+
     setIsModalOpen(true)
   }
   
@@ -138,7 +138,7 @@ export default function BotPage() {
           description: botDescription,
           welcomeMessage,
           avatar: botAvatar,
-          language: botLanguage,
+
         }),
       })
 
@@ -344,18 +344,7 @@ export default function BotPage() {
                   </div>
                 </div>
 
-                <div className="input-group">
-                  <label>Muloqot tili (Bot Language)</label>
-                  <select 
-                    className="input" 
-                    value={botLanguage} 
-                    onChange={(e) => setBotLanguage(e.target.value)}
-                  >
-                    <option value="uz">O'zbekcha (O'zbek)</option>
-                    <option value="ru">Русский (Russian)</option>
-                    <option value="en">English (English)</option>
-                  </select>
-                </div>
+
 
                 <div className="input-group">
                   <label>{t('about_bot')}</label>

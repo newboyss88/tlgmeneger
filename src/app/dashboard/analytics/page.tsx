@@ -7,7 +7,8 @@ import {
   DownloadCloud, FileText, UserSquare2, 
   ArrowDownCircle, ArrowUpCircle, Trash2, 
   RefreshCcw, Clock, AlertTriangle, Loader2,
-  CheckCircle2, Search, Filter
+  CheckCircle2, Search, Activity, TrendingDown,
+  TrendingUp, Users, Package, BarChart3, Sparkles
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
@@ -48,10 +49,10 @@ export default function AnalyticsPage() {
         fetchData()
         setShowClearConfirm(false)
       } else {
-        toast.error('Xatolik yuz berdi!')
+        toast.error(t('error') || 'Xatolik!')
       }
     } catch (err) {
-      toast.error('Tarmoq xatosi!')
+      toast.error(t('network_error') || 'Tarmoq xatosi!')
     } finally {
       setClearing(false)
     }
@@ -61,15 +62,14 @@ export default function AnalyticsPage() {
     if (!data || !data.rawTransactions) return;
     try {
       const { jsPDF } = await import('jspdf')
-      const { default: autoTable } = await import('jspdf-autotable')
+      const autoTableModule = await import('jspdf-autotable')
+      const autoTable = autoTableModule.default || autoTableModule
       
       const doc = new jsPDF()
-      
-      doc.setFontSize(22)
+      doc.setFontSize(20)
       doc.text("Analytics Report", 14, 20)
-      
       doc.setFontSize(10)
-      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30)
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28)
       
       const tableData = data.rawTransactions.map((t: any) => [
         new Date(t.createdAt).toLocaleString(),
@@ -80,38 +80,28 @@ export default function AnalyticsPage() {
         t.source
       ])
 
-      // Direct function call is the most reliable in ESM
       // @ts-ignore
-      const applyTable = typeof autoTable === 'function' ? autoTable : (autoTable as any).default;
-      
-      if (typeof applyTable === 'function') {
-        applyTable(doc, {
-          startY: 40,
+      if (typeof autoTable === 'function') {
+        autoTable(doc, {
+          startY: 35,
           head: [['Date', 'User', 'Product', 'SKU', 'Qty', 'Source']],
           body: tableData,
           theme: 'striped',
-          styles: { font: 'helvetica' }
+          styles: { font: 'helvetica', fontSize: 9 }
         })
       } else {
-        // Fallback for older patterns
         // @ts-ignore
-        import('jspdf-autotable').then(() => {
-           // @ts-ignore
-           if (typeof doc.autoTable === 'function') {
-             // @ts-ignore
-             doc.autoTable({
-               startY: 40,
-               head: [['Date', 'User', 'Product', 'SKU', 'Qty', 'Source']],
-               body: tableData,
-               theme: 'striped',
-               styles: { font: 'helvetica' }
-             })
-           }
+        doc.autoTable({
+          startY: 35,
+          head: [['Date', 'User', 'Product', 'SKU', 'Qty', 'Source']],
+          body: tableData,
+          theme: 'striped',
+          styles: { font: 'helvetica', fontSize: 9 }
         })
       }
 
       doc.save(`Analytics_${new Date().getTime()}.pdf`)
-      toast.success('PDF Exported!')
+      toast.success('PDF Exported! 📑')
     } catch (err) {
       console.error('PDF Export error:', err)
       toast.error('PDF export xatosi!')
@@ -121,40 +111,49 @@ export default function AnalyticsPage() {
   const exportExcel = () => {
     if (!data || !data.rawTransactions) return;
     
-    // Detailed data for Excel
     const detailedData = data.rawTransactions.map((t: any) => ({
-      'Sana (Date)': new Date(t.createdAt).toLocaleString(),
-      'Xodim (User)': t.user,
-      'Mahsulot (Product)': t.productName,
-      'SKU (Barcode)': t.productSku || '',
-      'Turi (Type)': t.type === 'OUT' ? 'Chiqim' : 'Kirim',
-      'Miqdor (Qty)': t.quantity,
-      'Manba (Source)': t.source,
-      'Izoh (Note)': t.note || ''
+      [t('date') || 'Sana']: new Date(t.createdAt).toLocaleString(),
+      [t('employee') || 'Xodim']: t.user,
+      [t('product') || 'Mahsulot']: t.productName,
+      'SKU': t.productSku || '',
+      [t('type') || 'Turi']: t.type === 'OUT' ? (t('deduct') || 'Chiqim') : (t('income') || 'Kirim'),
+      [t('quantity') || 'Miqdor']: t.quantity,
+      [t('source') || 'Manba']: t.source,
+      [t('note') || 'Izoh']: t.note || ''
     }))
 
     const ws = XLSX.utils.json_to_sheet(detailedData)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, "Transactions")
     
-    // Add Summary sheet
     const summaryData = [
-      { 'Metric': 'Jami amaliyotlar', 'Value': data.totalTransactions },
-      { 'Metric': 'Jami chiqim', 'Value': data.totalDeductions },
-      { 'Metric': 'Jami kirim', 'Value': data.totalIncomes },
+      { 'Metric': t('total_operations') || 'Jami amaliyotlar', 'Value': data.totalTransactions },
+      { 'Metric': t('total_deductions') || 'Jami chiqim', 'Value': data.totalDeductions },
+      { 'Metric': t('total_incomes') || 'Jami kirim', 'Value': data.totalIncomes },
     ]
     const wsSummary = XLSX.utils.json_to_sheet(summaryData)
     XLSX.utils.book_append_sheet(wb, wsSummary, "Summary")
 
     XLSX.writeFile(wb, `Report_${new Date().getTime()}.xlsx`)
-    toast.success('Excel Exported!')
+    toast.success('Excel Exported! 📊')
   }
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center p-24 space-y-4">
-        <Loader2 className="w-12 h-12 text-[var(--primary)] animate-spin" />
-        <p className="text-white/50 animate-pulse">Ma'lumotlar yuklanmoqda...</p>
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: '120px 20px', gap: '16px'
+      }}>
+        <div style={{
+          width: '64px', height: '64px', borderRadius: '20px',
+          background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.1))',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Loader2 size={28} style={{ color: 'var(--primary-500)', animation: 'spin 1s linear infinite' }} />
+        </div>
+        <p style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}>
+          {t('loading') || 'Ma\'lumotlar yuklanmoqda...'}
+        </p>
       </div>
     )
   }
@@ -164,219 +163,405 @@ export default function AnalyticsPage() {
     t.user.toLowerCase().includes(searchQuery.toLowerCase())
   ) || []
 
+  // Stats cards data
+  const statsCards = [
+    { 
+      label: t('total_operations') || 'Jami amaliyot', 
+      val: data?.totalTransactions || 0, 
+      icon: <Activity size={22} />, 
+      gradient: 'linear-gradient(135deg, #3B82F6, #6366F1)',
+      shadowColor: 'rgba(59,130,246,0.2)',
+      bgLight: 'rgba(59,130,246,0.06)'
+    },
+    { 
+      label: t('total_deductions') || 'Chiqimlar', 
+      val: data?.totalDeductions || 0, 
+      icon: <TrendingDown size={22} />, 
+      gradient: 'linear-gradient(135deg, #F43F5E, #E11D48)',
+      shadowColor: 'rgba(244,63,94,0.2)',
+      bgLight: 'rgba(244,63,94,0.06)'
+    },
+    { 
+      label: t('total_incomes') || 'Kirimlar', 
+      val: data?.totalIncomes || 0, 
+      icon: <TrendingUp size={22} />, 
+      gradient: 'linear-gradient(135deg, #10B981, #059669)',
+      shadowColor: 'rgba(16,185,129,0.2)',
+      bgLight: 'rgba(16,185,129,0.06)'
+    },
+    { 
+      label: t('active_employees') || 'Faol Xodimlar', 
+      val: data?.topContributors?.length || 0, 
+      icon: <Users size={22} />, 
+      gradient: 'linear-gradient(135deg, #A855F7, #7C3AED)',
+      shadowColor: 'rgba(168,85,247,0.2)',
+      bgLight: 'rgba(168,85,247,0.06)'
+    },
+  ]
+
   return (
-    <div className="space-y-8 pb-12">
-      {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', paddingBottom: '40px' }}>
+      
+      {/* ============ HEADER ============ */}
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
+        gap: '16px'
+      }}>
         <div>
-          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/40 tracking-tight">
-            {t('group_analytics') || 'Analitika va Hisobotlar'}
-          </h1>
-          <div className="flex items-center gap-2 mt-2 text-white/50 text-sm">
-            <Clock size={16} />
-            {t('analytics_desc') || 'Sklad amaliyotlarining jonli monitoringi'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '12px',
+              background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 16px rgba(124,58,237,0.3)'
+            }}>
+              <BarChart3 size={20} color="white" />
+            </div>
+            <div>
+              <h1 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px' }}>
+                {t('group_analytics') || 'Analitika'}
+              </h1>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>
+                {t('analytics_desc') || 'Sklad amaliyotlarining jonli monitoringi'}
+              </p>
+            </div>
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
-            <button 
-              onClick={fetchData} 
-              disabled={refreshing}
-              className="btn bg-white/5 border border-white/10 hover:bg-white/10 transition-all p-2 rounded-xl"
-              title="Yangilash"
-            >
-              <RefreshCcw size={20} className={refreshing ? "animate-spin" : ""} />
-            </button>
-            <button onClick={exportExcel} className="btn bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all shadow-lg shadow-emerald-500/5">
-                <FileText size={18} />
-                {t('export_excel') || 'Excel'}
-            </button>
-            <button onClick={exportPDF} className="btn bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all shadow-lg shadow-rose-500/5">
-                <DownloadCloud size={18} />
-                {t('export_pdf') || 'PDF'}
-            </button>
-            <button 
-              onClick={() => setShowClearConfirm(true)} 
-              className="btn bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all"
-            >
-              <Trash2 size={18} />
-              {t('clear_history') || 'Tozalash'}
-            </button>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+          <button 
+            onClick={fetchData} 
+            disabled={refreshing}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '40px', height: '40px', borderRadius: '12px',
+              background: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)',
+              cursor: 'pointer', color: 'var(--text-secondary)', transition: 'all 0.2s'
+            }}
+            title={t('refresh') || 'Yangilash'}
+          >
+            <RefreshCcw size={16} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+          </button>
+          <button 
+            onClick={exportExcel} 
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px',
+              borderRadius: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+              background: 'rgba(16,185,129,0.08)', color: '#10B981',
+              border: '1px solid rgba(16,185,129,0.15)', transition: 'all 0.2s'
+            }}
+          >
+            <FileText size={15} /> Excel
+          </button>
+          <button 
+            onClick={exportPDF} 
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px',
+              borderRadius: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+              background: 'rgba(244,63,94,0.08)', color: '#F43F5E',
+              border: '1px solid rgba(244,63,94,0.15)', transition: 'all 0.2s'
+            }}
+          >
+            <DownloadCloud size={15} /> PDF
+          </button>
+          <button 
+            onClick={() => setShowClearConfirm(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px',
+              borderRadius: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+              background: 'rgba(245,158,11,0.08)', color: '#F59E0B',
+              border: '1px solid rgba(245,158,11,0.15)', transition: 'all 0.2s'
+            }}
+          >
+            <Trash2 size={15} /> {t('clear_history') || 'Tozalash'}
+          </button>
         </div>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { label: 'Jami amaliyot', val: data?.totalTransactions, icon: <Clock className="text-blue-400" />, bg: 'bg-blue-400/5' },
-          { label: 'Chiqimlar', val: data?.totalDeductions, icon: <ArrowDownCircle className="text-rose-400" />, bg: 'bg-rose-400/5' },
-          { label: 'Kirimlar', val: data?.totalIncomes, icon: <ArrowUpCircle className="text-emerald-400" />, bg: 'bg-emerald-400/5' },
-          { label: 'Faol Xodimlar', val: data?.topContributors?.length || 0, icon: <UserSquare2 className="text-purple-400" />, bg: 'bg-purple-400/5' },
-        ].map((s, i) => (
+      {/* ============ STATS CARDS ============ */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+        {statsCards.map((s, i) => (
           <motion.div
             key={i}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.05 }}
-            className={`p-6 rounded-[2rem] border border-white/5 ${s.bg} relative overflow-hidden group`}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.06 }}
+            style={{
+              padding: '24px', borderRadius: '20px',
+              background: s.bgLight, border: '1px solid rgba(255,255,255,0.04)',
+              position: 'relative', overflow: 'hidden'
+            }}
           >
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-               {s.icon}
+            <div style={{
+              position: 'absolute', top: '16px', right: '16px',
+              width: '44px', height: '44px', borderRadius: '14px',
+              background: s.gradient, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 4px 16px ${s.shadowColor}`,
+              color: 'white'
+            }}>
+              {s.icon}
             </div>
-            <p className="text-white/40 text-sm font-medium mb-1">{s.label}</p>
-            <h3 className="text-4xl font-black text-white">{s.val}</h3>
+            <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-tertiary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              {s.label}
+            </p>
+            <h3 style={{ fontSize: '32px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-1px' }}>
+              {s.val}
+            </h3>
           </motion.div>
         ))}
       </div>
 
-      {/* Main Content Sections */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      {/* ============ MAIN CONTENT ============ */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '24px' }}>
         
-        {/* Live History Log (2/3 width) */}
-        <div className="xl:col-span-2 space-y-4">
-           <div className="flex items-center justify-between px-2">
-             <h2 className="text-xl font-bold flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Jonli Amaliyotlar Logi
-             </h2>
-             <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-                <input 
-                  type="text" 
-                  placeholder="Qidirish..." 
-                  className="bg-white/5 border border-white/10 rounded-full py-1.5 pl-10 pr-4 text-sm focus:border-[var(--primary)] outline-none transition-all w-48 md:w-64"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-             </div>
-           </div>
+        {/* Live Log */}
+        <div>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: '16px'
+          }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                background: '#10B981', boxShadow: '0 0 8px rgba(16,185,129,0.5)',
+                animation: 'pulse 2s infinite'
+              }} />
+              {t('live_log') || 'Jonli Log'}
+              <span style={{
+                padding: '2px 8px', borderRadius: '8px', fontSize: '11px',
+                fontWeight: '700', background: 'rgba(16,185,129,0.1)', color: '#10B981'
+              }}>
+                {filteredLogs.length}
+              </span>
+            </h2>
+            <div style={{ position: 'relative' }}>
+              <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+              <input 
+                type="text" 
+                placeholder={t('search') || 'Qidirish...'}
+                style={{
+                  padding: '8px 12px 8px 32px', borderRadius: '10px', fontSize: '12px',
+                  background: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)',
+                  color: 'var(--text-primary)', outline: 'none', width: '200px'
+                }}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
 
-           <div className="bg-[var(--card)] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                   <thead>
-                      <tr className="bg-white/5 text-white/40 text-xs uppercase tracking-widest border-b border-white/5">
-                        <th className="px-6 py-4 font-bold">Vaqt</th>
-                        <th className="px-6 py-4 font-bold">Xodim</th>
-                        <th className="px-6 py-4 font-bold">Mahsulot</th>
-                        <th className="px-6 py-4 font-bold">Harakat</th>
-                        <th className="px-6 py-4 font-bold">Manba</th>
-                      </tr>
-                   </thead>
-                   <tbody className="text-sm">
-                      {filteredLogs.map((log: any, idx: number) => (
-                        <tr key={log.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                          <td className="px-6 py-4 text-white/50">{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                          <td className="px-6 py-4 font-semibold">{log.user}</td>
-                          <td className="px-6 py-4">
-                             <div className="font-medium text-white/90">{log.productName}</div>
-                             <div className="text-[10px] text-white/30 truncate max-w-[120px]">{log.productSku || 'SKU yo\'q'}</div>
-                          </td>
-                          <td className="px-6 py-4">
-                             <span className={`px-2 py-1 rounded-lg font-bold text-xs ${log.type === 'OUT' ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
-                                {log.type === 'OUT' ? '-' : '+'}{log.quantity}
-                             </span>
-                          </td>
-                          <td className="px-6 py-4">
-                             <span className="text-[10px] border border-white/10 px-2 py-0.5 rounded-full uppercase text-white/40">
-                                {log.source}
-                             </span>
-                          </td>
-                        </tr>
-                      ))}
-                      {filteredLogs.length === 0 && (
-                        <tr>
-                           <td colSpan={5} className="px-6 py-12 text-center text-white/30 italic">Ma'lumot topilmadi</td>
-                        </tr>
-                      )}
-                   </tbody>
-                </table>
-              </div>
-           </div>
-        </div>
-
-        {/* Top Contributors Sidebar (1/3 width) */}
-        <div className="space-y-6">
-           <div className="bg-[var(--card)] border border-white/5 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-10">
-                 <UserSquare2 size={100} />
-              </div>
-              <h2 className="text-xl font-bold mb-8 flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white">
-                    🏆
-                 </div>
-                 {t('top_contributors') || 'Faol Xodimlar'}
-              </h2>
-              <div className="space-y-4">
-                  {data?.topContributors?.slice(0, 10).map((c: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between group">
-                          <div className="flex items-center gap-4">
-                             <div className="text-lg font-black text-white/10 group-hover:text-[var(--primary)] transition-colors italic w-6">
-                                {i + 1}
-                             </div>
-                             <div>
-                                <h4 className="font-bold text-white/90">{c.name}</h4>
-                                <p className="text-[10px] text-white/30 uppercase tracking-tighter">{c.outCount + c.inCount} amaliyot bajarilgan</p>
-                             </div>
-                          </div>
-                          <div className="text-right">
-                             <div className="text-sm font-black text-white">{c.totalQty} ta</div>
-                             <div className="text-[9px] text-rose-400 font-bold uppercase">Chiqim</div>
-                          </div>
-                      </div>
+          <div style={{
+            background: 'var(--bg-secondary)', borderRadius: '20px',
+            border: '1px solid var(--border-secondary)', overflow: 'hidden'
+          }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-secondary)' }}>
+                    {[t('time') || 'Vaqt', t('employee') || 'Xodim', t('product') || 'Mahsulot', t('action') || 'Harakat', t('source') || 'Manba'].map(h => (
+                      <th key={h} style={{
+                        padding: '14px 18px', fontSize: '11px', fontWeight: '700',
+                        textTransform: 'uppercase', letterSpacing: '0.5px',
+                        color: 'var(--text-tertiary)'
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLogs.map((log: any, idx: number) => (
+                    <tr key={log.id || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'all 0.15s' }}>
+                      <td style={{ padding: '14px 18px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                        {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td style={{ padding: '14px 18px', fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                        {log.user}
+                      </td>
+                      <td style={{ padding: '14px 18px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-primary)' }}>{log.productName}</div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{log.productSku || ''}</div>
+                      </td>
+                      <td style={{ padding: '14px 18px' }}>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700',
+                          background: log.type === 'OUT' ? 'rgba(244,63,94,0.08)' : 'rgba(16,185,129,0.08)',
+                          color: log.type === 'OUT' ? '#F43F5E' : '#10B981'
+                        }}>
+                          {log.type === 'OUT' ? <ArrowDownCircle size={12} /> : <ArrowUpCircle size={12} />}
+                          {log.type === 'OUT' ? '-' : '+'}{log.quantity}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 18px' }}>
+                        <span style={{
+                          padding: '3px 8px', borderRadius: '6px', fontSize: '10px',
+                          fontWeight: '600', textTransform: 'uppercase',
+                          background: 'rgba(255,255,255,0.04)', color: 'var(--text-tertiary)',
+                          border: '1px solid rgba(255,255,255,0.06)'
+                        }}>
+                          {log.source}
+                        </span>
+                      </td>
+                    </tr>
                   ))}
-                  {data?.topContributors?.length === 0 && (
-                     <p className="text-center py-8 text-white/20">Hozircha faollik yo'q</p>
+                  {filteredLogs.length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '48px 18px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>
+                        {t('no_data') || 'Ma\'lumot topilmadi'}
+                      </td>
+                    </tr>
                   )}
-              </div>
-           </div>
-
-           <div className="bg-gradient-to-br from-[var(--primary)] to-purple-800 p-8 rounded-[2.5rem] text-white shadow-xl shadow-purple-500/10 relative overflow-hidden">
-               <div className="absolute -bottom-4 -right-4 opacity-20 rotate-12">
-                  <CheckCircle2 size={120} />
-               </div>
-               <h3 className="text-xl font-bold mb-2">Tizim holati</h3>
-               <p className="text-white/70 text-sm mb-6">Barcha guruhlar va botlar stabil holatda xabarlarni qabul qilmoqda.</p>
-               <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20">
-                  <div className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
-                  <span className="text-xs font-bold uppercase tracking-widest">Live Monitoring On</span>
-               </div>
-           </div>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
+        {/* Sidebar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Top Contributors */}
+          <div style={{
+            background: 'var(--bg-secondary)', borderRadius: '20px', padding: '24px',
+            border: '1px solid var(--border-secondary)'
+          }}>
+            <h2 style={{
+              fontSize: '14px', fontWeight: '700', marginBottom: '20px',
+              display: 'flex', alignItems: 'center', gap: '10px'
+            }}>
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '10px',
+                background: 'linear-gradient(135deg, #F59E0B, #EF4444)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '14px'
+              }}>
+                🏆
+              </div>
+              {t('top_contributors') || 'Faol Xodimlar'}
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {data?.topContributors?.slice(0, 8).map((c: any, i: number) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 12px', borderRadius: '12px',
+                  background: i === 0 ? 'rgba(245,158,11,0.06)' : 'transparent',
+                  border: i === 0 ? '1px solid rgba(245,158,11,0.1)' : '1px solid transparent',
+                  transition: 'all 0.2s'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '24px', height: '24px', borderRadius: '8px',
+                      background: i < 3 ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.04)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '11px', fontWeight: '800',
+                      color: i < 3 ? '#F59E0B' : 'var(--text-tertiary)'
+                    }}>
+                      {i + 1}
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: '13px', fontWeight: '600' }}>{c.name}</h4>
+                      <p style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
+                        {c.outCount + c.inCount} {t('operations') || 'amaliyot'}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '700' }}>{c.totalQty}</div>
+                    <div style={{ fontSize: '9px', color: '#F43F5E', fontWeight: '600', textTransform: 'uppercase' }}>
+                      {t('deduct') || 'Chiqim'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(!data?.topContributors || data.topContributors.length === 0) && (
+                <p style={{ textAlign: 'center', padding: '24px', color: 'var(--text-tertiary)', fontSize: '13px' }}>
+                  {t('no_activity') || 'Hozircha faollik yo\'q'}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* System Status */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(124,58,237,0.12), rgba(99,102,241,0.08))',
+            borderRadius: '20px', padding: '24px', border: '1px solid rgba(124,58,237,0.12)',
+            position: 'relative', overflow: 'hidden'
+          }}>
+            <div style={{ position: 'absolute', bottom: '-10px', right: '-10px', opacity: 0.06 }}>
+              <Sparkles size={100} />
+            </div>
+            <h3 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '6px' }}>
+              {t('system_status') || 'Tizim holati'}
+            </h3>
+            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px', lineHeight: '1.5' }}>
+              {t('system_status_desc') || 'Barcha xizmatlar barqaror ishlayapti.'}
+            </p>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '10px 14px', borderRadius: '12px',
+              background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.12)'
+            }}>
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                background: '#10B981', boxShadow: '0 0 8px rgba(16,185,129,0.5)'
+              }} />
+              <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#10B981' }}>
+                Live Monitoring
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Confirmation Modal */}
+      {/* ============ CLEAR CONFIRM MODAL ============ */}
       <AnimatePresence>
         {showClearConfirm && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" onClick={() => !clearing && setShowClearConfirm(false)}>
-            <motion.div initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }} className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-               <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-6">
-                     <AlertTriangle size={32} className="text-amber-500" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-2">Tarixni tozalash?</h3>
-                  <p className="text-white/50 text-sm mb-8">
-                     Diqqat! Barcha amaliyotlar (Transactions) tarixi butunlay o'chiriladi. Ushbu amalni ortga qaytarib bo'lmaydi.
-                  </p>
-                  <div className="flex gap-4">
-                     <button 
-                        className="btn btn-secondary flex-1" 
-                        onClick={() => setShowClearConfirm(false)}
-                        disabled={clearing}
-                     >
-                        Bekor qilish
-                     </button>
-                     <button 
-                        className="btn bg-rose-500 text-white border-none flex-1" 
-                        onClick={handleClearHistory}
-                        disabled={clearing}
-                     >
-                        {clearing ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
-                        Tozalash
-                     </button>
-                  </div>
-               </div>
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+            className="modal-overlay" 
+            onClick={() => !clearing && setShowClearConfirm(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }} 
+              className="modal" onClick={e => e.stopPropagation()} 
+              style={{ maxWidth: '420px' }}
+            >
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  width: '64px', height: '64px', borderRadius: '20px',
+                  background: 'rgba(245,158,11,0.1)', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 20px'
+                }}>
+                  <AlertTriangle size={28} style={{ color: '#F59E0B' }} />
+                </div>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>
+                  {t('clear_history_title') || 'Tarixni tozalash?'}
+                </h3>
+                <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', marginBottom: '24px', lineHeight: '1.5' }}>
+                  {t('clear_history_desc') || 'Barcha amaliyotlar tarixi butunlay o\'chiriladi. Bu amalni ortga qaytarib bo\'lmaydi.'}
+                </p>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button 
+                    className="btn btn-secondary" style={{ flex: 1 }} 
+                    onClick={() => setShowClearConfirm(false)}
+                    disabled={clearing}
+                  >
+                    {t('cancel') || 'Bekor'}
+                  </button>
+                  <button 
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                      padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: '600',
+                      background: '#F43F5E', color: 'white', border: 'none', cursor: 'pointer'
+                    }}
+                    onClick={handleClearHistory}
+                    disabled={clearing}
+                  >
+                    {clearing ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Trash2 size={16} />}
+                    {t('clear') || 'Tozalash'}
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}

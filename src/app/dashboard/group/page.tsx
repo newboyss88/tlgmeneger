@@ -33,7 +33,7 @@ export default function GroupPage() {
   const [groupDescription, setGroupDescription] = useState('')
   const [autoReply, setAutoReply] = useState(true)
   const [groupAvatar, setGroupAvatar] = useState<string | null>(null)
-  const [groupLanguage, setGroupLanguage] = useState('uz')
+
   const [isSaving, setIsSaving] = useState(false)
 
   // Members state
@@ -138,7 +138,7 @@ export default function GroupPage() {
     setGroupDescription(group.description || '')
     setAutoReply(group.autoReply)
     setGroupAvatar(group.avatar || null)
-    setGroupLanguage(group.language || 'uz')
+
     setIsEditModalOpen(true)
   }
 
@@ -155,7 +155,7 @@ export default function GroupPage() {
           title: groupTitle,
           description: groupDescription,
           avatar: groupAvatar,
-          language: groupLanguage
+          
         }),
       })
 
@@ -447,18 +447,7 @@ export default function GroupPage() {
                   </button>
                 </div>
 
-                <div className="input-group">
-                  <label>Muloqot tili (Group Language)</label>
-                  <select 
-                    className="input" 
-                    value={groupLanguage} 
-                    onChange={(e) => setGroupLanguage(e.target.value)}
-                  >
-                    <option value="uz">O'zbekcha (O'zbek)</option>
-                    <option value="ru">Русский (Russian)</option>
-                    <option value="en">English (English)</option>
-                  </select>
-                </div>
+
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                   <button className="btn btn-secondary" onClick={() => setIsEditModalOpen(false)}>{t('cancel')}</button>

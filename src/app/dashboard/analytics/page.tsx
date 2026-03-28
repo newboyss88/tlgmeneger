@@ -79,13 +79,26 @@ export default function AnalyticsPage() {
         t.source
       ])
 
-      autoTable(doc, {
-        startY: 40,
-        head: [['Date', 'User', 'Product', 'SKU', 'Qty', 'Source']],
-        body: tableData,
-        theme: 'striped',
-        styles: { font: 'helvetica' }
-      })
+      // @ts-ignore - autoTable might be imported as a plugin or function
+      if (typeof autoTable === 'function') {
+        autoTable(doc, {
+          startY: 40,
+          head: [['Date', 'User', 'Product', 'SKU', 'Qty', 'Source']],
+          body: tableData,
+          theme: 'striped',
+          styles: { font: 'helvetica' }
+        })
+      } else {
+        // Fallback for some library versions
+        // @ts-ignore
+        doc.autoTable({
+          startY: 40,
+          head: [['Date', 'User', 'Product', 'SKU', 'Qty', 'Source']],
+          body: tableData,
+          theme: 'striped',
+          styles: { font: 'helvetica' }
+        })
+      }
 
       doc.save(`Analytics_${new Date().getTime()}.pdf`)
       toast.success('PDF Exported!')

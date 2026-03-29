@@ -318,10 +318,11 @@ export default function GroupPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
                 <div style={{
                   width: '50px', height: '50px', borderRadius: '12px',
-                  background: group.isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  background: group.avatar ? `url(${group.avatar}) center/cover` : (group.isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'),
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  overflow: 'hidden', border: group.avatar ? '1px solid var(--border-primary)' : 'none'
                 }}>
-                  <Hash size={24} color={group.isActive ? 'var(--success)' : 'var(--error)'} />
+                  {!group.avatar && <Hash size={24} color={group.isActive ? 'var(--success)' : 'var(--error)'} />}
                 </div>
                 <div>
                   <h3 style={{ fontSize: '16px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>

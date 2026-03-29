@@ -162,17 +162,33 @@ export async function PUT(request: Request) {
        }
     }
 
+    let updatedGroup: any = null
     try {
-      const updatedGroup = await (prisma.group as any).update({
+      // 1. First update basic fields (excluding avatar to be safe from size limits)
+      const basicFields = {
+        ...(autoReply !== undefined && { autoReply }),
+        ...(title && { title }),
+        ...(description !== undefined && { description }),
+        ...(language !== undefined && { language }),
+      }
+
+      updatedGroup = await (prisma.group as any).update({
         where: { id },
-        data: {
-          ...(autoReply !== undefined && { autoReply }),
-          ...(title && { title }),
-          ...(description !== undefined && { description }),
-          ...(avatar !== undefined && { avatar }),
-          ...(language !== undefined && { language }),
-        },
+        data: basicFields,
       })
+
+      // 2. Then try to update avatar separately if provided
+      if (avatar !== undefined) {
+         try {
+           updatedGroup = await (prisma.group as any).update({
+             where: { id },
+             data: { avatar },
+           })
+         } catch (avError) {
+           console.error('[API GROUP] Avatar DB update failed (likely size):', avError)
+           telegramError = telegramError || 'Rasm bazaga saqlanmadi (hajmi kattalik qilishi mumkin), lekin Telegram-da yangilangan bo\'lishi mumkin.'
+         }
+      }
       
       if (avatar && !telegramSyncSuccess) {
          return NextResponse.json({
@@ -180,22 +196,22 @@ export async function PUT(request: Request) {
            warning: 'Telegram-da rasm o\'zgarmadi. Sababi: ' + (telegramError || 'Noma\'lum xato')
          })
       }
-
-      return NextResponse.json(updatedGroup)
-    } catch (dbError) {
-      console.error('[API GROUP] Database update failed:', dbError)
-      if (telegramSyncSuccess) {
-        // If Telegram sync was OK, don't return 500, but warn about DB
-        return NextResponse.json({ 
-          message: 'Telegram-da rasm o\'zgardi, lekin ichki bazaga saqlashda xato yuz berdi (rasm hajmi juda katta bo\'lishi mumkin).', 
-          success: true 
+      
+      if (telegramError && telegramSyncSuccess) {
+        return NextResponse.json({
+          ...updatedGroup,
+          warning: telegramError
         })
       }
-      throw dbError // Let the outer catch handle it
+
+      return NextResponse.json(updatedGroup)
+    } catch (dbError: any) {
+      console.error('[API GROUP] Critical Database update failed:', dbError)
+      return NextResponse.json({ error: 'Ma\'lumotlarni saqlashda xato: ' + dbError.message }, { status: 500 })
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Group PUT error:', error)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Server error: ' + error.message }, { status: 500 })
   }
 }
 

@@ -152,11 +152,12 @@ export async function PUT(request: Request) {
         },
       })
       
-      // If telegram had a soft failure, we still returned the bot, but with a warning
+      // If only avatar changed and we skip telegram, users might think it failed.
+      // We explicitly allow avatar sync to ONLY be DB-side if it's a bot.
       if (avatar && !telegramSyncSuccess) {
          return NextResponse.json({ 
            ...bot, 
-           warning: 'Telegram-da rasm o\'zgarmadi. Sababi: ' + (telegramError || 'Noma\'lum xato')
+           warning: 'Dashboard-da bot rasmi o\'zgardi, lekin Telegram API cheklovi buni @BotFather orqali qilishni talab qilishi mumkin.'
          })
       }
 

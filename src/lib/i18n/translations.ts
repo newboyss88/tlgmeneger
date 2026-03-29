@@ -1,3 +1,5 @@
+export type Language = 'uz' | 'ru' | 'en';
+
 export const translations = {
   uz: {
     // Landing

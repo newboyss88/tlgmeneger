@@ -114,29 +114,31 @@ export async function PUT(request: Request) {
         // Update Avatar on Telegram if provided
         if (avatar && avatar.startsWith('data:image')) {
           try {
-            console.log('[API BOT] Attempting to sync avatar to Telegram...')
+            console.log(`[API BOT] Syncing avatar to Telegram for Bot ID: ${id}`)
             const base64Data = avatar.split(',')[1]
             const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
             const buffer = Buffer.from(base64Data, 'base64')
             
             const blob = new Blob([buffer], { type: mimeType })
             const formData = new FormData()
-            formData.append('photo', blob, 'avatar.jpg')
+            formData.append('photo', blob, 'photo.jpg')
             
+            // Note: Telegram API timeout can be an issue for large files, but 512x512 is small
             const photoRes = await fetch(`https://api.telegram.org/bot${botTokenToUse}/setBotPhoto`, {
               method: 'POST',
-              body: formData
+              body: formData,
+              // Add a bit of timeout buffer if needed, though fetch top-level doesn't have it easily
             })
             
             const pData = await photoRes.json()
             if (!pData.ok) {
-              console.error('[API BOT] Telegram setBotPhoto failed:', pData.error_code, pData.description)
+              console.error(`[API BOT] Telegram setBotPhoto FAILED: [${pData.error_code}] ${pData.description}`)
             } else {
-              console.log('[API BOT] Telegram setBotPhoto success')
+              console.log('[API BOT] Telegram setBotPhoto SUCCESS')
               telegramSyncSuccess = true
             }
           } catch(e) { 
-            console.error('[API BOT] Bot avatar sync technical error:', e) 
+            console.error('[API BOT] Bot avatar sync EXCEPTION:', e) 
           }
         }
     }

@@ -178,12 +178,45 @@ export default function GroupPage() {
     }
   }
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (base64: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.src = base64
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const MAX_SIZE = 512
+        let width = img.width
+        let height = img.height
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width
+            width = MAX_SIZE
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height
+            height = MAX_SIZE
+          }
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx?.drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', 0.8))
+      }
+    })
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
       const reader = new FileReader()
-      reader.onloadend = () => {
-         setGroupAvatar(reader.result as string)
+      reader.onloadend = async () => {
+         const base64 = reader.result as string
+         const compressed = await compressImage(base64)
+         setGroupAvatar(compressed)
       }
       reader.readAsDataURL(file)
     }

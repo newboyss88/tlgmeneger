@@ -800,6 +800,44 @@ img {
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15), 0 0 20px rgba(139, 92, 246, 0.08);
 }
 
+/* ======= WOW PREMIUM EFFECTS ======= */
+.icon-glow {
+  filter: drop-shadow(0 0 2px rgba(139, 92, 246, 0.5));
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover .icon-glow {
+  filter: drop-shadow(0 0 5px rgba(139, 92, 246, 0.8));
+  transform: rotate(15deg);
+}
+
+.btn-secondary:hover {
+  background: rgba(139, 92, 246, 0.08) !important;
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
+  transform: translateY(-2px);
+}
+
+.btn-secondary[style*="rgba(244, 63, 94"]:hover {
+  background: rgba(244, 63, 94, 0.1) !important;
+  border-color: rgba(244, 63, 94, 0.4) !important;
+  box-shadow: 0 0 20px rgba(244, 63, 94, 0.15);
+  color: #fb7185 !important;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+}
+
+.premium-card-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 /* Smooth skeleton loading */
 @keyframes skeletonPulse {
   0%, 100% { opacity: 0.4; }

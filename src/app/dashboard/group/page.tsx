@@ -309,7 +309,7 @@ export default function GroupPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+              <div className="premium-card-actions">
                 <button 
                   className="btn btn-secondary" 
                   style={{ 
@@ -319,7 +319,6 @@ export default function GroupPage() {
                     background: 'rgba(255, 255, 255, 0.03)', 
                     backdropFilter: 'blur(10px)', 
                     border: '1px solid rgba(255, 255, 255, 0.1)',
-                    transition: 'all 0.3s ease'
                   }} 
                   onClick={() => openEditModal(group)}
                 >
@@ -334,7 +333,6 @@ export default function GroupPage() {
                     background: 'rgba(255, 255, 255, 0.03)', 
                     backdropFilter: 'blur(10px)', 
                     border: '1px solid rgba(255, 255, 255, 0.1)',
-                    transition: 'all 0.3s ease'
                   }} 
                   onClick={() => loadMembers(group)}
                 >
@@ -349,7 +347,6 @@ export default function GroupPage() {
                     background: 'rgba(244, 63, 94, 0.05)', 
                     backdropFilter: 'blur(10px)', 
                     border: '1px solid rgba(244, 63, 94, 0.1)',
-                    transition: 'all 0.3s ease'
                   }} 
                   onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ id: group.id, name: group.name }); }}
                 >

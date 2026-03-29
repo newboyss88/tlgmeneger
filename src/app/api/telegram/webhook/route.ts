@@ -205,7 +205,7 @@ export async function POST(request: Request) {
             const actualQty = type === 'OUT' ? Math.min(pr.quantity, qty) : qty;
             
             if (type === 'OUT') {
-               const replyMsg = `\ud83d\udcc9 ${t.deduct}: *${actualQty}* ${pr.unit}\n\ud83d\udce6 ${t.product}: *${pr.name}*\n\n\ud83d\udc47 ${t.who_to_prompt}\n\n💬 ${t.code}: OUT_${actualQty}_${pr.id}`;
+               const replyMsg = `\ud83d\udcc9 ${t.deduct}: *${actualQty}* ${pr.unit}\n\ud83d\udce6 ${t.product}: *${pr.name}*\n\n\ud83d\udc47 ${t.who_to_prompt}\n\n💬 ${t.code}: OUT-${actualQty}-${pr.id}`;
                await sendTelegramMessage(botToken, chatId, replyMsg, 'Markdown', { force_reply: true });
                return NextResponse.json({ ok: true });
             }
@@ -238,9 +238,9 @@ export async function POST(request: Request) {
     // ==========================================
     // 2. TEXT COMMANDS
     // ==========================================
-    if (message.reply_to_message && message.reply_to_message.text && message.reply_to_message.text.includes('OUT_')) {
+    if (message.reply_to_message && message.reply_to_message.text && message.reply_to_message.text.includes('OUT-')) {
         const replyText = message.reply_to_message.text;
-        const match = replyText.match(/OUT_(\d+)_([A-Za-z0-9\-]+)/);
+        const match = replyText.match(/OUT\-(\d+)\-([A-Za-z0-9\-]+)/);
         if (match && text) {
             const qty = parseInt(match[1]);
             const prId = match[2];

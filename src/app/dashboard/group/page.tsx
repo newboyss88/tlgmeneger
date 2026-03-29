@@ -33,6 +33,7 @@ export default function GroupPage() {
   const [groupDescription, setGroupDescription] = useState('')
   const [autoReply, setAutoReply] = useState(true)
   const [groupAvatar, setGroupAvatar] = useState<string | null>(null)
+  const [groupLanguage, setGroupLanguage] = useState('uz')
 
   const [isSaving, setIsSaving] = useState(false)
 
@@ -111,7 +112,7 @@ export default function GroupPage() {
       const res = await fetch('/api/group', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId: newChatId, botId: selectedBotId }),
+        body: JSON.stringify({ chatId: newChatId, botId: selectedBotId, language: groupLanguage }),
       })
 
       const data = await res.json()
@@ -138,6 +139,7 @@ export default function GroupPage() {
     setGroupDescription(group.description || '')
     setAutoReply(group.autoReply)
     setGroupAvatar(group.avatar || null)
+    setGroupLanguage(group.language || 'uz')
 
     setIsEditModalOpen(true)
   }
@@ -155,6 +157,7 @@ export default function GroupPage() {
           title: groupTitle,
           description: groupDescription,
           avatar: groupAvatar,
+          language: groupLanguage,
           
         }),
       })
@@ -360,6 +363,20 @@ export default function GroupPage() {
                   <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
                     {t('group_admin_hint')}
                   </span>
+                </div>
+
+                <div className="input-group">
+                  <label>{t('language')}</label>
+                  <select 
+                    className="input" 
+                    value={groupLanguage} 
+                    onChange={(e) => setGroupLanguage(e.target.value)}
+                    style={{ appearance: 'auto' }}
+                  >
+                    <option value="uz">O'zbekcha</option>
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                  </select>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '10px' }}>

@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { chatId, botId } = await request.json()
+    const { chatId, botId, language } = await request.json()
 
     if (!chatId || !botId) {
       return NextResponse.json({ error: 'Chat ID va bot tanlang' }, { status: 400 })
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       // Update existing
       const group = await prisma.group.update({
         where: { id: existing.id },
-        data: { title, type: chatType, isActive: true },
+        data: { title, type: chatType, isActive: true, language: language || 'uz' },
       })
       return NextResponse.json(group)
     }
@@ -69,6 +69,7 @@ export async function POST(request: Request) {
         isActive: true,
         autoReply: true,
         botId,
+        language: language || 'uz',
       },
     })
 

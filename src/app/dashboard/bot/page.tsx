@@ -28,6 +28,7 @@ export default function BotPage() {
   const [welcomeMessage, setWelcomeMessage] = useState(t('welcome_msg_default'))
   const [botDescription, setBotDescription] = useState('')
   const [botAvatar, setBotAvatar] = useState<string | null>(null)
+  const [botLanguage, setBotLanguage] = useState('uz')
 
   const [isSaving, setIsSaving] = useState(false)
   
@@ -63,6 +64,7 @@ export default function BotPage() {
     setWelcomeMessage(t('welcome_msg_default'))
     setBotDescription('')
     setBotAvatar(null)
+    setBotLanguage('uz')
 
     setIsModalOpen(true)
   }
@@ -75,6 +77,7 @@ export default function BotPage() {
     setWelcomeMessage(bot.welcomeMessage || '')
     setBotDescription(bot.description || '')
     setBotAvatar(bot.avatar || null)
+    setBotLanguage(bot.language || 'uz')
 
     setIsModalOpen(true)
   }
@@ -138,6 +141,7 @@ export default function BotPage() {
           description: botDescription,
           welcomeMessage,
           avatar: botAvatar,
+          language: botLanguage,
 
         }),
       })
@@ -342,6 +346,20 @@ export default function BotPage() {
                     <label>{t('bot_username')}</label>
                     <input type="text" className="input" value={botUsername ? `@${botUsername}` : ''} disabled style={{ opacity: 0.7 }} placeholder={t('auto_detect')} />
                   </div>
+                </div>
+
+                <div className="input-group">
+                  <label>{t('language')}</label>
+                  <select 
+                    className="input" 
+                    value={botLanguage} 
+                    onChange={(e) => setBotLanguage(e.target.value)}
+                    style={{ appearance: 'auto' }}
+                  >
+                    <option value="uz">O'zbekcha</option>
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                  </select>
                 </div>
 
 

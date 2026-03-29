@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { token, name, username, description, welcomeMessage } = await request.json()
+    const { token, name, username, description, welcomeMessage, language } = await request.json()
 
     if (!token) return NextResponse.json({ error: 'Token kiriting' }, { status: 400 })
 
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
         name: name || 'Bot',
         description: description || '',
         welcomeMessage: welcomeMessage || 'Assalomu alaykum! Botga xush kelibsiz! 🤖',
+        language: language || 'uz',
         isActive: true,
         userId: (session.user as any).id,
       },

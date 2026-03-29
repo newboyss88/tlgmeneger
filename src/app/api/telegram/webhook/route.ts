@@ -222,9 +222,36 @@ export async function POST(request: Request) {
     // ==========================================
     if (!text) return NextResponse.json({ ok: true });
 
-    if (text === '/start' || text === '/yordam' || text === '/help') {
-      await sendTelegramMessage(botToken, chatId, t.help_text, 'Markdown')
-      return NextResponse.json({ ok: true })
+    if (text === '/start' || text === '/yordam' || text === '/help' || text.startsWith('/')) {
+      const commandName = text.replace('/', '');
+      
+      // Try to find custom response in bot.settings
+      if (bot.settings) {
+         try {
+            const settings = JSON.parse(bot.settings);
+            const commands = settings.commands || [];
+            const customCmd = commands.find((c: any) => c.command === commandName);
+            
+            if (customCmd && customCmd.response && commandName !== 'start') {
+               await sendTelegramMessage(botToken, chatId, customCmd.response, 'Markdown');
+               return NextResponse.json({ ok: true });
+            }
+         } catch(e) {
+            console.error('Webhook settings parse error:', e);
+         }
+      }
+
+      // Default logic for /start
+      if (text === '/start') {
+        await sendTelegramMessage(botToken, chatId, bot.welcomeMessage || t.help_text, 'Markdown');
+        return NextResponse.json({ ok: true });
+      }
+
+      // Default logic for /help
+      if (text === '/yordam' || text === '/help') {
+         await sendTelegramMessage(botToken, chatId, t.help_text, 'Markdown');
+         return NextResponse.json({ ok: true });
+      }
     }
 
     if (text === '/menu' || text === '/sklad') {

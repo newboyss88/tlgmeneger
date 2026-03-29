@@ -36,6 +36,12 @@ export async function POST(request: Request) {
        return NextResponse.json({ error: data.description || 'Telegram xatosi' }, { status: 400 })
     }
 
+    // 4. Save to DB settings
+    await prisma.bot.update({
+      where: { id: botId },
+      data: { settings: JSON.stringify({ commands }) }
+    })
+
     return NextResponse.json({ success: true, message: 'Menyu yangilandi!' })
   } catch (error: any) {
     console.error('Bot Commands error:', error)
@@ -58,6 +64,18 @@ export async function GET(request: Request) {
     })
 
     if (!bot) return NextResponse.json({ error: 'Bot topilmadi' }, { status: 404 })
+
+    // Try to get from DB first (to get custom responses)
+    if (bot.settings) {
+      try {
+        const settings = JSON.parse(bot.settings)
+        if (settings.commands) {
+          return NextResponse.json(settings.commands)
+        }
+      } catch (e) {
+        console.error('Settings parse error:', e)
+      }
+    }
 
     const res = await fetch(`https://api.telegram.org/bot${bot.token}/getMyCommands`)
     const data = await res.json()

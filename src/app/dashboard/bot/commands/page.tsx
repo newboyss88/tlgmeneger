@@ -16,7 +16,7 @@ export default function BotCommandsPage() {
   const { t } = useLanguage()
   const [bots, setBots] = useState<any[]>([])
   const [selectedBotId, setSelectedBotId] = useState<string>('')
-  const [commands, setCommands] = useState<{ command: string, description: string }[]>([])
+  const [commands, setCommands] = useState<{ command: string, description: string, response?: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -46,10 +46,10 @@ export default function BotCommandsPage() {
          setCommands(data)
       } else {
          setCommands([
-           { command: 'start', description: 'Botni boshlash' },
-           { command: 'menu', description: 'Interaktiv boshqaruv menyusi' },
-           { command: 'sklad', description: 'Omborxonalar ro\'yxati' },
-           { command: 'yordam', description: 'Yordam va qo\'llanma' }
+            { command: 'start', description: 'Botni boshlash', response: '' },
+            { command: 'menu', description: 'Interaktiv boshqaruv menyusi', response: '' },
+            { command: 'sklad', description: 'Omborxonalar ro\'yxati', response: '' },
+            { command: 'yordam', description: 'Yordam va qo\'llanma', response: '' }
          ])
       }
     } catch (e) {
@@ -64,14 +64,14 @@ export default function BotCommandsPage() {
   }, [])
 
   const handleAddCommand = () => {
-    setCommands([...commands, { command: '', description: '' }])
+    setCommands([...commands, { command: '', description: '', response: '' }])
   }
 
   const handleRemoveCommand = (idx: number) => {
     setCommands(commands.filter((_, i) => i !== idx))
   }
 
-  const handleCommandChange = (idx: number, field: 'command' | 'description', val: string) => {
+  const handleCommandChange = (idx: number, field: 'command' | 'description' | 'response', val: string) => {
     const updated = [...commands]
     const cleanVal = field === 'command' ? val.toLowerCase().replace(/[^a-z0-9_]/g, '') : val
     updated[idx][field] = cleanVal
@@ -313,17 +313,46 @@ export default function BotCommandsPage() {
                       </div>
 
                       {/* Description input */}
-                      <input 
-                        type="text" 
-                        style={{
-                          flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border-secondary)',
-                          borderRadius: '10px', padding: '10px 14px', fontSize: '13px',
-                          color: 'var(--text-secondary)', outline: 'none'
-                        }}
-                        placeholder={t('cmd_description') || 'Tavsif yozing...'}
-                        value={cmd.description}
-                        onChange={(e) => handleCommandChange(idx, 'description', e.target.value)}
-                      />
+                        <input 
+                          type="text" 
+                          style={{
+                            flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border-secondary)',
+                            borderRadius: '10px', padding: '10px 14px', fontSize: '13px',
+                            color: 'var(--text-secondary)', outline: 'none'
+                          }}
+                          placeholder={t('cmd_description') || 'Tavsif yozing...'}
+                          value={cmd.description}
+                          onChange={(e) => handleCommandChange(idx, 'description', e.target.value)}
+                        />
+
+                        {/* Response input */}
+                        <div style={{ flex: 2, position: 'relative' }}>
+                          <textarea 
+                            style={{
+                              width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-secondary)',
+                              borderRadius: '10px', padding: '10px 14px', fontSize: '13px',
+                              color: 'var(--primary-400)', outline: 'none', resize: 'none',
+                              minHeight: '42px', display: 'flex', alignItems: 'center'
+                            }}
+                            placeholder={cmd.command === 'start' ? t('cmd_start_note') : t('cmd_response_placeholder')}
+                            value={cmd.response || ''}
+                            onChange={(e) => handleCommandChange(idx, 'response', e.target.value)}
+                            rows={1}
+                            disabled={cmd.command === 'start'}
+                          />
+                          {cmd.command === 'start' && (
+                            <div style={{
+                              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                              background: 'rgba(0,0,0,0.03)', borderRadius: '10px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              cursor: 'not-allowed', pointerEvents: 'none'
+                            }}>
+                               <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontWeight: '600' }}>
+                                 {t('cmd_start_note')}
+                               </span>
+                            </div>
+                          )}
+                        </div>
 
                       {/* Delete */}
                       <button 

@@ -36,10 +36,17 @@ export default function AnalyticsPage() {
       const q = new URLSearchParams()
       if (selectedBots.length) q.set('bots', selectedBots.join(','))
       if (selectedGroups.length) q.set('groups', selectedGroups.join(','))
+      
       const res = await fetch('/api/analytics?' + q.toString())
       const d = await res.json()
-      setData(d)
-    } catch (e) {
+      
+      if (!res.ok || d.error) {
+         toast.error(d.details || d.error || 'Server API Error', { duration: 6000 })
+         setData(null)
+      } else {
+         setData(d)
+      }
+    } catch (e: any) {
       toast.error(t('load_error') || 'Xatolik yuklashda!')
     } finally {
       setLoading(false)
@@ -315,7 +322,7 @@ export default function AnalyticsPage() {
         <div style={{ flex: '1', minWidth: '200px' }}>
            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px', fontWeight: 600 }}>Guruhlar</p>
            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {bots.flatMap(b => b.groups).map((g: any) => (
+              {bots.flatMap(b => b.groups || []).map((g: any) => (
                  <label key={g.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px' }}>
                     <input type="checkbox" checked={selectedGroups.includes(g.id)} onChange={(e) => {
                        if(e.target.checked) setSelectedGroups(p => [...p, g.id])

@@ -90,9 +90,9 @@ export async function GET(request: Request) {
           user: t.telegramUser ? (t.telegramUser.firstName || t.telegramUser.username || 'User') : (t.user?.name || 'Admin')
         })).slice(0, 100)
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Analytics GET xato:', error)
-    return NextResponse.json({ error: 'Server xatosi' }, { status: 500 })
+    return NextResponse.json({ error: 'Server xatosi', details: error.message || String(error) }, { status: 500 })
   }
 }
 

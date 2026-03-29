@@ -100,7 +100,10 @@ export async function POST(request: Request) {
         back: '\u25c0\ufe0f Ortga', cancel: 'Bekor qilish',
         also_found: 'Xuddi shunday yana {count} ta mahsulot bor. Aniq ismini yozing.',
         help_text: '\ud83e\udd16 *Bot buyruqlari:*\n\n/menu \u2014 \ud83d\udd79 Interaktiv boshqaruv menyusi\n/sklad \u2014 \ud83c\udfe2 Omborxonalar ro\'yxati\n\n\ud83d\udcdd Guruhda aniq mahsulot nomi yoki SKU bilan chiqim qiling.\nMasalan: "HP-CF217A 1ta"',
-        operation_success: '\u2705 Operatsiya muvaffaqiyatli:'
+        operation_success: '\u2705 Operatsiya muvaffaqiyatli:',
+        who_to: 'Kimga',
+        who_to_prompt: 'Iltimos, ushbu chiqim kimga yoki qayerga qilinayotganini yozib yuboring (shu xabarga javob qilib):',
+        code: 'Kod'
       },
       ru: {
         autoDeduct: '\u0410\u0432\u0442\u043e-\u0441\u043f\u0438\u0441\u0430\u043d\u0438\u0435', product: '\u0422\u043e\u0432\u0430\u0440', deduct: '\u0421\u043f\u0438\u0441\u0430\u043d\u0438\u0435', income: '\u041f\u0440\u0438\u0445\u043e\u0434', newBalance: '\u041d\u043e\u0432\u044b\u0439 \u043e\u0441\u0442\u0430\u0442\u043e\u043a',
@@ -114,7 +117,10 @@ export async function POST(request: Request) {
         back: '\u25c0\ufe0f \u041d\u0430\u0437\u0430\u0434', cancel: '\u041e\u0442\u043c\u0435\u043d\u0430',
         also_found: '\u0422\u0430\u043a\u0436\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e \u0435\u0449\u0451 {count} \u0442\u043e\u0432\u0430\u0440(\u043e\u0432). \u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u0442\u043e\u0447\u043d\u043e\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435.',
         help_text: '\ud83e\udd16 *\u041a\u043e\u043c\u0430\u043d\u0434\u044b \u0431\u043e\u0442\u0430:*\n\n/menu \u2014 \ud83d\udd79 \u0418\u043d\u0442\u0435\u0440\u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0435 \u043c\u0435\u043d\u044e \u0443\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u044f\n/sklad \u2014 \ud83c\udfe2 \u0421\u043f\u0438\u0441\u043e\u043a \u0441\u043a\u043b\u0430\u0434\u043e\u0432\n\n\ud83d\udcdd \u0414\u043b\u044f \u0441\u043f\u0438\u0441\u0430\u043d\u0438\u044f \u0443\u043a\u0430\u0436\u0438\u0442\u0435 \u0442\u043e\u0447\u043d\u043e\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u0438\u043b\u0438 \u0430\u0440\u0442\u0438\u043a\u0443\u043b \u0442\u043e\u0432\u0430\u0440\u0430.\n\u041f\u0440\u0438\u043c\u0435\u0440: "HP-CF217A 1\u0448\u0442"',
-        operation_success: '\u2705 \u041e\u043f\u0435\u0440\u0430\u0446\u0438\u044f \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0430:'
+        operation_success: '\u2705 \u041e\u043f\u0435\u0440\u0430\u0446\u0438\u044f \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0430:',
+        who_to: 'Кому / Куда',
+        who_to_prompt: 'Пожалуйста, напишите, кому или куда производится это списание (добавьте как ответ на это сообщение):',
+        code: 'Код'
       },
       en: {
         autoDeduct: 'Auto-deduction', product: 'Product', deduct: 'Deducted', income: 'Added', newBalance: 'New balance',
@@ -128,7 +134,10 @@ export async function POST(request: Request) {
         back: '\u25c0\ufe0f Back', cancel: 'Cancel',
         also_found: 'There are also {count} more product(s) found. Please specify the exact name.',
         help_text: '\ud83e\udd16 *Bot commands:*\n\n/menu \u2014 \ud83d\udd79 Interactive control menu\n/sklad \u2014 \ud83c\udfe2 Warehouse list\n\n\ud83d\udcdd To deduct, type the exact product name or SKU with quantity.\nExample: "HP-CF217A 1pcs"',
-        operation_success: '\u2705 Operation completed:'
+        operation_success: '\u2705 Operation completed:',
+        who_to: 'To whom',
+        who_to_prompt: 'Please write to whom or where this deduction is being made (reply to this message):',
+        code: 'Code'
       }
     };
     const t = dict[lng] || dict['uz'];
@@ -196,7 +205,7 @@ export async function POST(request: Request) {
             const actualQty = type === 'OUT' ? Math.min(pr.quantity, qty) : qty;
             
             if (type === 'OUT') {
-               const replyMsg = `\ud83d\udcc9 ${t.deduct}: *${actualQty}* ${pr.unit}\n\ud83d\udce6 ${t.product}: *${pr.name}*\n\n\ud83d\udc47 Iltimos, ushbu chiqim *kimga yoki qayerga* qilinganligini yozib yuboring (shu xabarga javob qilib):\n\n💬 Kod: OUT_${actualQty}_${pr.id}`;
+               const replyMsg = `\ud83d\udcc9 ${t.deduct}: *${actualQty}* ${pr.unit}\n\ud83d\udce6 ${t.product}: *${pr.name}*\n\n\ud83d\udc47 ${t.who_to_prompt}\n\n💬 ${t.code}: OUT_${actualQty}_${pr.id}`;
                await sendTelegramMessage(botToken, chatId, replyMsg, 'Markdown', { force_reply: true });
                return NextResponse.json({ ok: true });
             }
@@ -229,7 +238,7 @@ export async function POST(request: Request) {
     // ==========================================
     // 2. TEXT COMMANDS
     // ==========================================
-    if (message.reply_to_message && message.reply_to_message.text && message.reply_to_message.text.includes('Kod: OUT_')) {
+    if (message.reply_to_message && message.reply_to_message.text && message.reply_to_message.text.includes('OUT_')) {
         const replyText = message.reply_to_message.text;
         const match = replyText.match(/OUT_(\d+)_([A-Za-z0-9\-]+)/);
         if (match && text) {
@@ -250,8 +259,8 @@ export async function POST(request: Request) {
                     groupId: bot.groups.find((g: any) => String(g.chatId) === String(chatId))?.id
                   }
                 });
-                const status = newQuantity <= pr.minQuantity ? `\ud83d\udd34 ${t.statusLow}` : `\ud83d\udfe2 ${t.statusOk}`;
-                const msg = `${t.operation_success}\n\ud83d\udcf1 ${t.product}: *${pr.name}*\n\ud83d\udcc9 ${t.deduct}: *${qty}* ${pr.unit}\n\ud83d\udc64 Kimga: *${noteText}*\n\ud83d\udce6 ${t.newBalance}: *${newQuantity}* ${pr.unit}\n${status}`;
+                const status = newQuantity <= pr.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
+                const msg = `${t.operation_success}\n📱 ${t.product}: *${pr.name}*\n📉 ${t.deduct}: *${qty}* ${pr.unit}\n👤 ${t.who_to}: *${noteText}*\n📦 ${t.newBalance}: *${newQuantity}* ${pr.unit}\n${status}`;
                 await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
             }
             return NextResponse.json({ ok: true });

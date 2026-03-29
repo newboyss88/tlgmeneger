@@ -1,4 +1,5 @@
 export type Language = 'uz' | 'ru' | 'en';
+export type TranslationKey = keyof typeof translations.uz;
 
 export const translations = {
   uz: {

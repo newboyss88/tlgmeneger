@@ -126,18 +126,11 @@ export async function PUT(request: Request) {
             const tg = new TelegramBot(botTokenToUse)
             
             try {
-              console.log('[API BOT] Sending setMyProfilePhoto via _request...')
-              await tg._request('setMyProfilePhoto', {
-                formData: {
-                  photo: {
-                    value: buffer,
-                    options: {
-                      filename: 'photo.jpg',
-                      contentType: mimeType
-                    }
-                  }
-                }
-              })
+              console.log('[API BOT] Sending setMyProfilePhoto via _formatSendData...')
+              // Since setMyProfilePhoto is missing from high-level API, use internal method
+              const [formData] = tg._formatSendData('photo', buffer)
+              await tg._request('setMyProfilePhoto', { formData })
+              
               console.log('[API BOT] Telegram setMyProfilePhoto SUCCESS')
               telegramSyncSuccess = true
             } catch (pError: any) {

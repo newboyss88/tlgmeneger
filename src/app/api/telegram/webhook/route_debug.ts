@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export async function POST(request: Request) {
@@ -199,7 +199,8 @@ export async function POST(request: Request) {
                 productId: pr.id,
                 userId: bot.userId,
                 // @ts-ignore
-                telegramUserId: tgUserId
+                telegramUserId: tgUserId,
+                groupId: bot.groups.find((g: any) => String(g.chatId) === String(chatId))?.id
               }
             });
 
@@ -235,11 +236,12 @@ export async function POST(request: Request) {
     }
 
     let canProcessText = false;
+    let matchedGroup: any = null;
     if (chatType === 'private') {
        canProcessText = true;
     } else {
-       const group = bot.groups.find((g: any) => String(g.chatId) === String(chatId));
-       if (group && group.autoReply) canProcessText = true;
+       matchedGroup = bot.groups.find((g: any) => String(g.chatId) === String(chatId));
+       if (matchedGroup && matchedGroup.autoReply) canProcessText = true;
     }
 
     if (canProcessText && !text.startsWith('/')) {
@@ -270,7 +272,8 @@ export async function POST(request: Request) {
                    productId: product.id,
                    userId: bot.userId,
                    // @ts-ignore
-                   telegramUserId: tgUserId
+                   telegramUserId: tgUserId,
+                   groupId: matchedGroup?.id
                  }
                });
 

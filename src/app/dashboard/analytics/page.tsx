@@ -22,10 +22,21 @@ export default function AnalyticsPage() {
   const [clearing, setClearing] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Filters & Export State
+  const [bots, setBots] = useState<any[]>([])
+  const [selectedBots, setSelectedBots] = useState<string[]>([])
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([])
+  const [exportModal, setExportModal] = useState(false)
+  const [exportFormat, setExportFormat] = useState<'excel'|'pdf'>('excel')
+  const [exportLang, setExportLang] = useState<'uz'|'ru'|'en'>('uz')
+
   const fetchData = async () => {
     setRefreshing(true)
     try {
-      const res = await fetch('/api/analytics')
+      const q = new URLSearchParams()
+      if (selectedBots.length) q.set('bots', selectedBots.join(','))
+      if (selectedGroups.length) q.set('groups', selectedGroups.join(','))
+      const res = await fetch('/api/analytics?' + q.toString())
       const d = await res.json()
       setData(d)
     } catch (e) {
@@ -37,8 +48,18 @@ export default function AnalyticsPage() {
   }
 
   useEffect(() => {
+    fetch('/api/bot')
+       .then(r => r.json())
+       .then(d => { if (Array.isArray(d)) setBots(d) })
+       .catch(console.error)
+       
     fetchData()
-  }, [])
+  }, []) // Initial load
+  
+  // Re-fetch when filters change
+  useEffect(() => {
+    if (!loading) fetchData()
+  }, [selectedBots, selectedGroups])
 
   const handleClearHistory = async () => {
     setClearing(true)
@@ -58,84 +79,92 @@ export default function AnalyticsPage() {
     }
   }
 
-  const exportPDF = async () => {
+  const tDict = {
+     uz: { report: 'Hisobot', kirim: 'Kirim', chiqim: 'Chiqim', jami: 'Jami', date: 'Sana', user: 'Xodim', product: 'Mahsulot', qty: 'Miqdor', source: 'Manba', sum_ops: 'Jami amaliyotlar', sum_ded: 'Jami chiqim', sum_inc: 'Jami kirim' },
+     ru: { report: 'Отчет', kirim: 'Приход', chiqim: 'Расход', jami: 'Итого', date: 'Дата', user: 'Сотрудник', product: 'Товар', qty: 'Кол-во', source: 'Источник', sum_ops: 'Всего операций', sum_ded: 'Всего расход', sum_inc: 'Всего приход' },
+     en: { report: 'Report', kirim: 'Income', chiqim: 'Expense', jami: 'Summary', date: 'Date', user: 'Employee', product: 'Product', qty: 'Quantity', source: 'Source', sum_ops: 'Total Operations', sum_ded: 'Total Expense', sum_inc: 'Total Income' }
+  }
+
+  const executeExport = async () => {
     if (!data || !data.rawTransactions) return;
-    try {
+    const dict = tDict[exportLang]
+    
+    const inTxs = data.rawTransactions.filter((t: any) => t.type === 'IN')
+    const outTxs = data.rawTransactions.filter((t: any) => t.type === 'OUT')
+
+    if (exportFormat === 'excel') {
+      const formatData = (txs: any[]) => txs.map(tx => ({
+        [dict.date]: new Date(tx.createdAt).toLocaleString('ru-RU'),
+        [dict.user]: tx.user,
+        [dict.product]: tx.productName,
+        'SKU': tx.productSku || '',
+        [dict.qty]: tx.quantity,
+        [dict.source]: tx.source
+      }))
+
+      const wsIn = XLSX.utils.json_to_sheet(formatData(inTxs))
+      const wsOut = XLSX.utils.json_to_sheet(formatData(outTxs))
+      const wsSum = XLSX.utils.json_to_sheet([
+        { 'Metric': dict.sum_ops, 'Value': data.totalTransactions },
+        { 'Metric': dict.sum_ded, 'Value': data.totalDeductions },
+        { 'Metric': dict.sum_inc, 'Value': data.totalIncomes },
+      ])
+
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, wsOut, dict.chiqim)
+      XLSX.utils.book_append_sheet(wb, wsIn, dict.kirim)
+      XLSX.utils.book_append_sheet(wb, wsSum, dict.jami)
+      
+      XLSX.writeFile(wb, `${dict.report}_${new Date().getTime()}.xlsx`)
+      toast.success(`Excel ${t('saved_success_msg') || 'Saqlandi!'}`)
+    } else {
+      // PDF Export
       const { jsPDF } = await import('jspdf')
       const autoTableModule = await import('jspdf-autotable')
       const autoTable = autoTableModule.default || autoTableModule
       
       const doc = new jsPDF()
-      doc.setFontSize(20)
-      doc.text("Analytics Report", 14, 20)
-      doc.setFontSize(10)
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28)
+      const head = [[dict.date, dict.user, dict.product, 'SKU', dict.qty, dict.source]]
       
-      const tableData = data.rawTransactions.map((t: any) => [
-        new Date(t.createdAt).toLocaleString(),
-        t.user,
-        t.productName,
-        t.productSku || '-',
-        t.type === 'OUT' ? `-${t.quantity}` : `+${t.quantity}`,
-        t.source
+      const getBody = (txs: any[]) => txs.map(t => [
+        new Date(t.createdAt).toLocaleString('ru-RU'),
+        t.user, t.productName, t.productSku || '-', t.quantity.toString(), t.source
       ])
 
-      // @ts-ignore
-      if (typeof autoTable === 'function') {
-        autoTable(doc, {
-          startY: 35,
-          head: [['Date', 'User', 'Product', 'SKU', 'Qty', 'Source']],
-          body: tableData,
-          theme: 'striped',
-          styles: { font: 'helvetica', fontSize: 9 }
-        })
-      } else {
-        // @ts-ignore
-        doc.autoTable({
-          startY: 35,
-          head: [['Date', 'User', 'Product', 'SKU', 'Qty', 'Source']],
-          body: tableData,
-          theme: 'striped',
-          styles: { font: 'helvetica', fontSize: 9 }
-        })
-      }
+      doc.setFontSize(18)
+      doc.text(`${dict.report} - ${dict.chiqim}`, 14, 20)
+      
+      autoTable(doc, {
+        startY: 30, head, body: getBody(outTxs), theme: 'striped',
+        styles: { font: 'helvetica', fontSize: 9 }, headStyles: { fillColor: [244, 63, 94] }
+      })
 
-      doc.save(`Analytics_${new Date().getTime()}.pdf`)
-      toast.success('PDF Exported! 📑')
-    } catch (err) {
-      console.error('PDF Export error:', err)
-      toast.error('PDF export xatosi!')
+      doc.addPage()
+      doc.setFontSize(18)
+      doc.text(`${dict.report} - ${dict.kirim}`, 14, 20)
+      autoTable(doc, {
+        startY: 30, head, body: getBody(inTxs), theme: 'striped',
+        styles: { font: 'helvetica', fontSize: 9 }, headStyles: { fillColor: [16, 185, 129] }
+      })
+
+      doc.addPage()
+      doc.setFontSize(18)
+      doc.text(`${dict.report} - ${dict.jami}`, 14, 20)
+      autoTable(doc, {
+        startY: 30,
+        head: [['Metric', 'Value']],
+        body: [
+          [dict.sum_ops, data.totalTransactions.toString()],
+          [dict.sum_ded, data.totalDeductions.toString()],
+          [dict.sum_inc, data.totalIncomes.toString()]
+        ],
+        theme: 'grid', styles: { font: 'helvetica', fontSize: 12 }
+      })
+
+      doc.save(`${dict.report}_${new Date().getTime()}.pdf`)
+      toast.success(`PDF ${t('saved_success_msg') || 'Saqlandi!'}`)
     }
-  }
-
-  const exportExcel = () => {
-    if (!data || !data.rawTransactions) return;
-    
-    const detailedData = data.rawTransactions.map((tx: any) => ({
-      [t('date') || 'Sana']: new Date(tx.createdAt).toLocaleString(),
-      [t('employee') || 'Xodim']: tx.user,
-      [t('product') || 'Mahsulot']: tx.productName,
-      'SKU': tx.productSku || '',
-      [t('type') || 'Turi']: tx.type === 'OUT' ? (t('deduct') || 'Chiqim') : (t('income') || 'Kirim'),
-      [t('quantity') || 'Miqdor']: tx.quantity,
-      [t('source') || 'Manba']: tx.source,
-      [t('note') || 'Izoh']: tx.note || ''
-    }))
-
-    const ws = XLSX.utils.json_to_sheet(detailedData)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, "Transactions")
-    
-    const summaryData = [
-      { 'Metric': t('total_operations') || 'Jami amaliyotlar', 'Value': data.totalTransactions },
-      { 'Metric': t('total_deductions') || 'Jami chiqim', 'Value': data.totalDeductions },
-      { 'Metric': t('total_incomes') || 'Jami kirim', 'Value': data.totalIncomes },
-    ]
-    const wsSummary = XLSX.utils.json_to_sheet(summaryData)
-    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary")
-
-    XLSX.writeFile(wb, `Report_${new Date().getTime()}.xlsx`)
-    toast.success('Excel Exported! 📊')
+    setExportModal(false)
   }
 
   if (loading) {
@@ -243,7 +272,7 @@ export default function AnalyticsPage() {
             <RefreshCcw size={16} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
           </button>
           <button 
-            onClick={exportExcel} 
+            onClick={() => setExportModal(true)} 
             style={{
               display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px',
               borderRadius: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
@@ -251,18 +280,7 @@ export default function AnalyticsPage() {
               border: '1px solid rgba(16,185,129,0.15)', transition: 'all 0.2s'
             }}
           >
-            <FileText size={15} /> Excel
-          </button>
-          <button 
-            onClick={exportPDF} 
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px',
-              borderRadius: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-              background: 'rgba(244,63,94,0.08)', color: '#F43F5E',
-              border: '1px solid rgba(244,63,94,0.15)', transition: 'all 0.2s'
-            }}
-          >
-            <DownloadCloud size={15} /> PDF
+            <DownloadCloud size={15} /> Hisobotni Yuklash
           </button>
           <button 
             onClick={() => setShowClearConfirm(true)}
@@ -275,6 +293,38 @@ export default function AnalyticsPage() {
           >
             <Trash2 size={15} /> {t('clear_history') || 'Tozalash'}
           </button>
+        </div>
+      </div>
+
+      {/* ============ FILTERS ============ */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', background: 'var(--bg-secondary)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border-secondary)' }}>
+        <div style={{ flex: '1', minWidth: '200px' }}>
+           <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px', fontWeight: 600 }}>Botlar</p>
+           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {bots.map(b => (
+                 <label key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                    <input type="checkbox" checked={selectedBots.includes(b.id)} onChange={(e) => {
+                       if(e.target.checked) setSelectedBots(p => [...p, b.id])
+                       else setSelectedBots(p => p.filter(id => id !== b.id))
+                    }} />
+                    {b.name || 'Bot'}
+                 </label>
+              ))}
+           </div>
+        </div>
+        <div style={{ flex: '1', minWidth: '200px' }}>
+           <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px', fontWeight: 600 }}>Guruhlar</p>
+           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {bots.flatMap(b => b.groups).map((g: any) => (
+                 <label key={g.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                    <input type="checkbox" checked={selectedGroups.includes(g.id)} onChange={(e) => {
+                       if(e.target.checked) setSelectedGroups(p => [...p, g.id])
+                       else setSelectedGroups(p => p.filter(id => id !== g.id))
+                    }} />
+                    {g.title || 'Guruh'}
+                 </label>
+              ))}
+           </div>
         </div>
       </div>
 
@@ -561,6 +611,71 @@ export default function AnalyticsPage() {
                     {t('clear') || 'Tozalash'}
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ============ EXPORT MODAL ============ */}
+      <AnimatePresence>
+        {exportModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}
+            onClick={() => setExportModal(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }} 
+              className="modal" onClick={e => e.stopPropagation()} 
+              style={{ maxWidth: '400px', width: '100%' }}
+            >
+              <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '20px' }}>
+                Hisobotni Yuklash
+              </h3>
+              
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Format</label>
+                <select 
+                  value={exportFormat} onChange={e => setExportFormat(e.target.value as any)}
+                  className="input-field"
+                >
+                  <option value="excel">Excel (.xlsx) - Varaqli</option>
+                  <option value="pdf">PDF (.pdf) - Sahifali</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Til</label>
+                <select 
+                  value={exportLang} onChange={e => setExportLang(e.target.value as any)}
+                  className="input-field"
+                >
+                  <option value="uz">O'zbekcha</option>
+                  <option value="ru">Русский</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button 
+                  className="btn btn-secondary" style={{ flex: 1 }} 
+                  onClick={() => setExportModal(false)}
+                >
+                  Bekor qilish
+                </button>
+                <button 
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: '600',
+                    background: 'var(--primary-500)', color: 'white', border: 'none', cursor: 'pointer'
+                  }}
+                  onClick={executeExport}
+                >
+                  Yuklab olish
+                </button>
               </div>
             </motion.div>
           </motion.div>

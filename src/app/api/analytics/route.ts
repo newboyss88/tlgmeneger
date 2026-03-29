@@ -3,16 +3,34 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const botsParam = searchParams.get('bots')
+    const groupsParam = searchParams.get('groups')
+    
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     
     const userId = (session.user as any).id
 
+    const whereClause: any = { userId }
+    const orConditions: any[] = []
+
+    if (botsParam) {
+       orConditions.push({ product: { warehouse: { botId: { in: botsParam.split(',') } } } })
+    }
+    if (groupsParam) {
+       orConditions.push({ groupId: { in: groupsParam.split(',') } })
+    }
+
+    if (orConditions.length > 0) {
+       whereClause.OR = orConditions
+    }
+
     // Fetch transactions
     const rawTransactions = (await prisma.transaction.findMany({
-      where: { userId },
+      where: whereClause,
       include: {
         product: true,
         telegramUser: true

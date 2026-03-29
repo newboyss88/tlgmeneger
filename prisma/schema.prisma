@@ -86,6 +86,7 @@ model Group {
 
   botId           String
   bot             Bot       @relation(fields: [botId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
 
   @@index([botId])
 }
@@ -140,10 +141,14 @@ model Transaction {
   
   telegramUserId  String?
   telegramUser    TelegramUser? @relation(fields: [telegramUserId], references: [id])
+  
+  groupId         String?
+  group           Group?        @relation(fields: [groupId], references: [id])
 
   @@index([productId])
   @@index([userId])
   @@index([telegramUserId])
+  @@index([groupId])
 }
 
 model AuditLog {

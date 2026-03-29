@@ -156,7 +156,7 @@ export default function AnalyticsPage() {
       
       autoTable(doc, {
         startY: 30, head, body: getBody(outTxs), theme: 'striped',
-        styles: { font: fontName, fontSize: 9 }, headStyles: { fillColor: [244, 63, 94] }
+        styles: { font: fontName, fontSize: 9 }, headStyles: { fillColor: [244, 63, 94], fontStyle: 'normal' }
       })
 
       doc.addPage()
@@ -164,7 +164,7 @@ export default function AnalyticsPage() {
       doc.text(`${dict.report} - ${dict.kirim}`, 14, 20)
       autoTable(doc, {
         startY: 30, head, body: getBody(inTxs), theme: 'striped',
-        styles: { font: fontName, fontSize: 9 }, headStyles: { fillColor: [16, 185, 129] }
+        styles: { font: fontName, fontSize: 9 }, headStyles: { fillColor: [16, 185, 129], fontStyle: 'normal' }
       })
 
       doc.addPage()
@@ -178,7 +178,7 @@ export default function AnalyticsPage() {
           [dict.sum_ded, data.totalDeductions.toString()],
           [dict.sum_inc, data.totalIncomes.toString()]
         ],
-        theme: 'grid', styles: { font: fontName, fontSize: 12 }
+        theme: 'grid', styles: { font: fontName, fontSize: 12 }, headStyles: { fontStyle: 'normal' }
       })
 
       doc.save(`${dict.report}_${new Date().getTime()}.pdf`)

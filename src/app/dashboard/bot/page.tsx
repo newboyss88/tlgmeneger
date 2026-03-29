@@ -19,6 +19,7 @@ export default function BotPage() {
   // State for modals
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, name: string } | null>(null)
   
   // State for editing/adding bot
   const [selectedBot, setSelectedBot] = useState<any>(null)
@@ -98,15 +99,14 @@ export default function BotPage() {
     }
   }
 
-  const handleDeleteBot = async (e: React.MouseEvent, botId: string) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const msg = t('delete_bot_confirm') || 'Haqiqatan ham ushbu botni o\'chirmoqchimisiz?'
-    if (!window.confirm(msg)) return
+  const handleDeleteBot = async () => {
+    if (!deleteConfirm) return
+    const botId = deleteConfirm.id
     try {
       const res = await fetch(`/api/bot?id=${botId}`, { method: 'DELETE' })
       if (res.ok) {
         toast.success(t('deleted_success'))
+        setDeleteConfirm(null)
         loadBots()
       } else {
         toast.error(t('delete_error'))
@@ -281,15 +281,16 @@ export default function BotPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => openEditBotModal(bot)}>
-                  <Settings size={16} /> {t('settings')}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                <button className="btn btn-secondary" style={{ padding: '0 8px', fontSize: '13px' }} onClick={() => openEditBotModal(bot)}>
+                  <Settings size={14} /> {t('settings')}
                 </button>
-                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => openMembersModal(bot)}>
-                  <Users size={16} /> {t('members')}
+                <button className="btn btn-secondary" style={{ padding: '0 8px', fontSize: '13px' }} onClick={() => openMembersModal(bot)}>
+                  <Users size={14} /> {t('members')}
                 </button>
-                <button type="button" className="btn btn-secondary" style={{ padding: '0 12px', color: 'var(--error)' }} onClick={(e) => handleDeleteBot(e, bot.id)}>
-                  <Trash2 size={16} />
+                <button type="button" className="btn btn-secondary" style={{ padding: '0 8px', fontSize: '13px', color: 'var(--error)' }} 
+                  onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ id: bot.id, name: bot.name }); }}>
+                  <Trash2 size={14} /> {t('delete')}
                 </button>
               </div>
             </motion.div>
@@ -451,6 +452,29 @@ export default function BotPage() {
                   </table>
                 </div>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {deleteConfirm && (
+          <div className="modal-overlay">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="modal-content" style={{ maxWidth: '400px' }}>
+              <div style={{ textAlign: 'center', padding: '10px' }}>
+                <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(244, 63, 94, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                  <Trash2 size={30} color="var(--accent-rose)" />
+                </div>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '12px' }}>{t('delete_bot_confirm')}</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '30px' }}>
+                  <strong>{deleteConfirm.name}</strong> {t('delete_user_warning')}
+                </p>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setDeleteConfirm(null)}>{t('cancel')}</button>
+                  <button className="btn" style={{ flex: 1, background: 'var(--accent-rose)', color: 'white' }} onClick={handleDeleteBot}>
+                    {t('delete')}
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

@@ -54,14 +54,14 @@ export async function POST(request: Request) {
 
     if (existing) {
       // Update existing
-      const group = await prisma.group.update({
+      const group = await (prisma.group as any).update({
         where: { id: existing.id },
         data: { title, type: chatType, isActive: true, language: language || 'uz' },
       })
       return NextResponse.json(group)
     }
 
-    const group = await prisma.group.create({
+    const group = await (prisma.group as any).create({
       data: {
         chatId: chatId.toString(),
         title,
@@ -139,13 +139,14 @@ export async function PUT(request: Request) {
        }
     }
 
-    const updatedGroup = await prisma.group.update({
+    const updatedGroup = await (prisma.group as any).update({
       where: { id },
       data: {
         ...(autoReply !== undefined && { autoReply }),
         ...(title && { title }),
-        ...(avatar && { avatar }),
-        ...(language && { language }),
+        ...(description !== undefined && { description }),
+        ...(avatar !== undefined && { avatar }),
+        ...(language !== undefined && { language }),
       },
     })
 

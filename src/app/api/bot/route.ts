@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     if (!token) return NextResponse.json({ error: 'Token kiriting' }, { status: 400 })
 
-    const bot = await prisma.bot.create({
+    const bot = await (prisma.bot as any).create({
       data: {
         token,
         username: username || '',
@@ -100,13 +100,13 @@ export async function PUT(request: Request) {
     if (avatar !== undefined) updateData.avatar = avatar
     if (language !== undefined) updateData.language = language
 
-    const bot = await prisma.bot.update({
+    const bot = await (prisma.bot as any).update({
       where: { id },
       data: updateData,
     })
 
     // Auto setWebhook
-    const botTokenToUse = token || existing?.token
+    const botTokenToUse = (token || existing?.token)?.trim()
     if (botTokenToUse) {
        const origin = new URL(request.url).origin
        await fetch(`https://api.telegram.org/bot${botTokenToUse}/setWebhook`, {
@@ -115,22 +115,33 @@ export async function PUT(request: Request) {
          body: JSON.stringify({ url: `${origin}/api/telegram/webhook?botId=${bot.id}` })
        }).catch(console.error)
 
-       // 4. Update Avatar on Telegram if provided
-       if (avatar && avatar.startsWith('data:image')) {
-         try {
-           const base64Data = avatar.split(',')[1]
-           const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
-           const buffer = Buffer.from(base64Data, 'base64')
-           const blob = new Blob([buffer], { type: mimeType })
-           const formData = new FormData()
-           formData.append('photo', blob, 'avatar.jpg')
-           
-           await fetch(`https://api.telegram.org/bot${botTokenToUse}/setBotPhoto`, {
-             method: 'POST',
-             body: formData
-           }).catch(console.error)
-         } catch(e) { console.error('Bot avatar upload error:', e) }
-       }
+        // 4. Update Avatar on Telegram if provided
+        if (avatar && avatar.startsWith('data:image')) {
+          try {
+            const base64Data = avatar.split(',')[1]
+            const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
+            const buffer = Buffer.from(base64Data, 'base64')
+            
+            // Note: In Node.js environment, we use Blob from the global scope or special handling
+            const blob = new Blob([buffer], { type: mimeType })
+            const formData = new FormData()
+            formData.append('photo', blob, 'avatar.jpg')
+            
+            const photoRes = await fetch(`https://api.telegram.org/bot${botTokenToUse}/setBotPhoto`, {
+              method: 'POST',
+              body: formData
+            })
+            
+            const pData = await photoRes.json()
+            if (!pData.ok) {
+              console.error('Telegram setBotPhoto error:', pData)
+            } else {
+              console.log('Telegram setBotPhoto success')
+            }
+          } catch(e) { 
+            console.error('Bot avatar upload technical error:', e) 
+          }
+        }
     }
 
     await prisma.auditLog.create({

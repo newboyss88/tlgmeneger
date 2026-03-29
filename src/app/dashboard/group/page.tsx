@@ -20,6 +20,7 @@ export default function GroupPage() {
   // Modals
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, name: string } | null>(null)
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false)
 
   // Create state
@@ -209,15 +210,14 @@ export default function GroupPage() {
   }
 
   // Future expansion: Delete Group API wrapper
-  const handleDeleteGroup = async (e: React.MouseEvent, group: any) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const msg = `"${group.title}" ${t('delete_group_confirm') || 'ni o\'chirmoqchimisiz?'}`
-    if (!window.confirm(msg)) return
+  const handleDeleteGroup = async () => {
+    if (!deleteConfirm) return
+    const groupId = deleteConfirm.id
     try {
-      const res = await fetch(`/api/group?id=${group.id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/group?id=${groupId}`, { method: 'DELETE' })
       if (res.ok) {
         toast.success(t('deleted_success'))
+        setDeleteConfirm(null)
         loadData()
       } else {
         toast.error(t('delete_error'))
@@ -309,15 +309,16 @@ export default function GroupPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="btn btn-secondary" style={{ flex: 1, padding: '0 8px', fontSize: '13px' }} onClick={() => openEditModal(group)}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                <button className="btn btn-secondary" style={{ padding: '0 8px', fontSize: '13px' }} onClick={() => openEditModal(group)}>
                   <Settings size={14} /> {t('settings')}
                 </button>
-                <button className="btn btn-secondary" style={{ flex: 1, padding: '0 8px', fontSize: '13px' }} onClick={() => loadMembers(group)}>
+                <button className="btn btn-secondary" style={{ padding: '0 8px', fontSize: '13px' }} onClick={() => loadMembers(group)}>
                   <Users size={14} /> {t('members_btn')}
                 </button>
-                <button type="button" className="btn btn-secondary" style={{ padding: '0 12px', color: 'var(--error)' }} onClick={(e) => handleDeleteGroup(e, group)}>
-                  <Trash2 size={16} />
+                <button type="button" className="btn btn-secondary" style={{ padding: '0 8px', fontSize: '13px', color: 'var(--error)' }} 
+                  onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ id: group.id, name: group.name }); }}>
+                  <Trash2 size={14} /> {t('delete')}
                 </button>
               </div>
             </motion.div>
@@ -579,6 +580,30 @@ export default function GroupPage() {
                   <div className="empty-state-text">{t('no_users_found')}</div>
                 </div>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Deletion Confirm Modal */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <div className="modal-overlay">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="modal-content" style={{ maxWidth: '400px' }}>
+              <div style={{ textAlign: 'center', padding: '10px' }}>
+                <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(244, 63, 94, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                  <Trash2 size={30} color="var(--accent-rose)" />
+                </div>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '12px' }}>{t('delete_group_confirm')}</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '30px' }}>
+                  <strong>{deleteConfirm.name}</strong> {t('delete_user_warning')}
+                </p>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setDeleteConfirm(null)}>{t('cancel')}</button>
+                  <button className="btn" style={{ flex: 1, background: 'var(--accent-rose)', color: 'white' }} onClick={handleDeleteGroup}>
+                    {t('delete')}
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

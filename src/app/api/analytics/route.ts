@@ -12,6 +12,15 @@ export async function GET(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     
+    // YENGI COLUMNNI TURSO BAZASIGA MAJBURIY QO'SHISH (Faqat 1 marta o'tadi, qolganlarida catchga tushadi)
+    try {
+       await prisma.$executeRawUnsafe(`ALTER TABLE "Transaction" ADD COLUMN "groupId" TEXT`);
+       console.log('groupId column added to Transaction table successfully.');
+    } catch (e) {
+       // Bu xatolik ustun allaqachon mavjudligini bildiradi, indamaymiz
+    }
+
+    
     const userId = (session.user as any).id
 
     const whereClause: any = { userId }

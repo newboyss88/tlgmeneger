@@ -120,13 +120,24 @@ export async function PUT(request: Request) {
             const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
             const buffer = Buffer.from(base64Data, 'base64')
             
-            // Use node-telegram-bot-api for more robust file uploading
+            // Use node-telegram-bot-api internal _request for robust file uploading
+            // as setMyProfilePhoto might be missing from the high-level API in some versions
             const TelegramBot = require('node-telegram-bot-api')
             const tg = new TelegramBot(botTokenToUse)
             
             try {
-              // Note: setMyProfilePhoto is the correct method for bots
-              await tg.setMyProfilePhoto(buffer)
+              console.log('[API BOT] Sending setMyProfilePhoto via _request...')
+              await tg._request('setMyProfilePhoto', {
+                formData: {
+                  photo: {
+                    value: buffer,
+                    options: {
+                      filename: 'photo.jpg',
+                      contentType: mimeType
+                    }
+                  }
+                }
+              })
               console.log('[API BOT] Telegram setMyProfilePhoto SUCCESS')
               telegramSyncSuccess = true
             } catch (pError: any) {

@@ -126,15 +126,26 @@ export async function PUT(request: Request) {
             const tg = new TelegramBot(botTokenToUse)
             
             try {
-              console.log('[API BOT] Sending setMyProfilePhoto via _formatSendData...')
-              // Since setMyProfilePhoto is missing from high-level API, use internal method
-              const [formData] = tg._formatSendData('photo', buffer)
-              await tg._request('setMyProfilePhoto', { formData })
+              console.log('[API BOT] Sending setMyProfilePhoto via direct fetch (FormData)...')
+              const formData = new FormData()
+              const blob = new Blob([buffer], { type: mimeType })
+              formData.append('photo', blob, 'avatar.jpg')
+
+              const pRes = await fetch(`https://api.telegram.org/bot${botTokenToUse}/setMyProfilePhoto`, {
+                method: 'POST',
+                body: formData
+              })
+              const pData = await pRes.json()
               
-              console.log('[API BOT] Telegram setMyProfilePhoto SUCCESS')
-              telegramSyncSuccess = true
+              if (pData.ok) {
+                console.log('[API BOT] Telegram setMyProfilePhoto SUCCESS')
+                telegramSyncSuccess = true
+              } else {
+                console.error(`[API BOT] Telegram setMyProfilePhoto FAILED: ${pData.description}`)
+                telegramError = pData.description
+              }
             } catch (pError: any) {
-              console.error(`[API BOT] Telegram setMyProfilePhoto FAILED: ${pError.message}`)
+              console.error(`[API BOT] Telegram setMyProfilePhoto Technical Error: ${pError.message}`)
               telegramError = pError.message
             }
           } catch(e) { 

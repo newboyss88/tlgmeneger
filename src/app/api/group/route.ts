@@ -125,15 +125,27 @@ export async function PUT(request: Request) {
          const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
          const buffer = Buffer.from(base64Data, 'base64')
          
-         const TelegramBot = require('node-telegram-bot-api')
-         const tg = new TelegramBot(botToken)
-         
          try {
-           await tg.setChatPhoto(chatId, buffer)
-           console.log('[API GROUP] Telegram setChatPhoto success')
-           telegramSyncSuccess = true
+           console.log('[API GROUP] Sending setChatPhoto via direct fetch (FormData)...')
+           const formData = new FormData()
+           const blob = new Blob([buffer], { type: mimeType })
+           formData.append('photo', blob, 'avatar.jpg')
+
+           const pRes = await fetch(`https://api.telegram.org/bot${botToken}/setChatPhoto?chat_id=${chatId}`, {
+             method: 'POST',
+             body: formData
+           })
+           const pData = await pRes.json()
+           
+           if (pData.ok) {
+             console.log('[API GROUP] Telegram setChatPhoto SUCCESS')
+             telegramSyncSuccess = true
+           } else {
+             console.error(`[API GROUP] Telegram setChatPhoto FAILED: ${pData.description}`)
+             telegramError = pData.description
+           }
          } catch (pError: any) {
-           console.error('[API GROUP] Telegram setChatPhoto failed:', pError.message)
+           console.error(`[API GROUP] Telegram setChatPhoto Technical Error: ${pError.message}`)
            telegramError = pError.message
          }
        } catch (err) {

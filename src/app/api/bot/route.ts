@@ -124,19 +124,18 @@ export async function PUT(request: Request) {
             const formData = new FormData()
             formData.append('photo', blob, 'photo.jpg')
             
-            // Note: Telegram API timeout can be an issue for large files, but 512x512 is small
-            const photoRes = await fetch(`https://api.telegram.org/bot${botTokenToUse}/setBotPhoto`, {
+            // Note: Correct method name is setMyProfilePhoto, not setBotPhoto
+            const photoRes = await fetch(`https://api.telegram.org/bot${botTokenToUse}/setMyProfilePhoto`, {
               method: 'POST',
               body: formData,
-              // Add a bit of timeout buffer if needed, though fetch top-level doesn't have it easily
             })
             
             const pData = await photoRes.json()
             if (!pData.ok) {
-              console.error(`[API BOT] Telegram setBotPhoto FAILED: [${pData.error_code}] ${pData.description}`)
+              console.error(`[API BOT] Telegram setMyProfilePhoto FAILED: [${pData.error_code}] ${pData.description}`)
               telegramError = pData.description
             } else {
-              console.log('[API BOT] Telegram setBotPhoto SUCCESS')
+              console.log('[API BOT] Telegram setMyProfilePhoto SUCCESS')
               telegramSyncSuccess = true
             }
           } catch(e) { 

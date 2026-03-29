@@ -126,14 +126,23 @@ export async function PUT(request: Request) {
          const buffer = Buffer.from(base64Data, 'base64')
          
          try {
-           console.log('[API GROUP] Sending setChatPhoto via direct fetch (FormData)...')
-           const formData = new FormData()
-           const blob = new Blob([buffer], { type: mimeType })
-           formData.append('photo', blob, 'avatar.jpg')
+           console.log('[API GROUP] Sending setChatPhoto via manual multipart Buffer...')
+           const boundary = `----WebKitFormBoundaryGroupAvatar${Date.now()}`
+           const start = `--${boundary}\r\nContent-Disposition: form-data; name="photo"; filename="avatar.jpg"\r\nContent-Type: ${mimeType}\r\n\r\n`
+           const end = `\r\n--${boundary}--\r\n`
+           
+           const payload = Buffer.concat([
+             Buffer.from(start, 'utf-8'),
+             buffer,
+             Buffer.from(end, 'utf-8')
+           ])
 
            const pRes = await fetch(`https://api.telegram.org/bot${botToken}/setChatPhoto?chat_id=${chatId}`, {
              method: 'POST',
-             body: formData
+             headers: {
+               'Content-Type': `multipart/form-data; boundary=${boundary}`
+             },
+             body: payload
            })
            const pData = await pRes.json()
            

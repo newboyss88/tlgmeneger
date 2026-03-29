@@ -126,14 +126,23 @@ export async function PUT(request: Request) {
             const tg = new TelegramBot(botTokenToUse)
             
             try {
-              console.log('[API BOT] Sending setMyProfilePhoto via direct fetch (FormData)...')
-              const formData = new FormData()
-              const blob = new Blob([buffer], { type: mimeType })
-              formData.append('photo', blob, 'avatar.jpg')
+              console.log('[API BOT] Sending setMyProfilePhoto via manual multipart Buffer...')
+              const boundary = `----WebKitFormBoundaryBotAvatar${Date.now()}`
+              const start = `--${boundary}\r\nContent-Disposition: form-data; name="photo"; filename="avatar.jpg"\r\nContent-Type: ${mimeType}\r\n\r\n`
+              const end = `\r\n--${boundary}--\r\n`
+              
+              const payload = Buffer.concat([
+                Buffer.from(start, 'utf-8'),
+                buffer,
+                Buffer.from(end, 'utf-8')
+              ])
 
               const pRes = await fetch(`https://api.telegram.org/bot${botTokenToUse}/setMyProfilePhoto`, {
                 method: 'POST',
-                body: formData
+                headers: {
+                  'Content-Type': `multipart/form-data; boundary=${boundary}`
+                },
+                body: payload
               })
               const pData = await pRes.json()
               

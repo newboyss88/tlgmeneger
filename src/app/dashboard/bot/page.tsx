@@ -98,15 +98,18 @@ export default function BotPage() {
     }
   }
 
-  const handleDeleteBot = async (botId: string) => {
-    if (!confirm(t('delete_wh_confirm') || 'Haqiqatan ham ushbu botni o\'chirmoqchimisiz?')) return
+  const handleDeleteBot = async (e: React.MouseEvent, botId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const msg = t('delete_bot_confirm') || 'Haqiqatan ham ushbu botni o\'chirmoqchimisiz?'
+    if (!window.confirm(msg)) return
     try {
       const res = await fetch(`/api/bot?id=${botId}`, { method: 'DELETE' })
       if (res.ok) {
-        toast.success(t('deleted_success') || 'Bot muvaffaqiyatli o\'chirildi!')
+        toast.success(t('deleted_success'))
         loadBots()
       } else {
-        toast.error(t('delete_error') || 'O\'chirishda xatolik!')
+        toast.error(t('delete_error'))
       }
     } catch {
       toast.error(t('network_error'))
@@ -285,7 +288,7 @@ export default function BotPage() {
                 <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => openMembersModal(bot)}>
                   <Users size={16} /> {t('members')}
                 </button>
-                <button className="btn btn-secondary" style={{ padding: '0 12px', color: 'var(--error)' }} onClick={() => handleDeleteBot(bot.id)}>
+                <button type="button" className="btn btn-secondary" style={{ padding: '0 12px', color: 'var(--error)' }} onClick={(e) => handleDeleteBot(e, bot.id)}>
                   <Trash2 size={16} />
                 </button>
               </div>

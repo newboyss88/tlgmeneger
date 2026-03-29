@@ -209,15 +209,18 @@ export default function GroupPage() {
   }
 
   // Future expansion: Delete Group API wrapper
-  const handleDeleteGroup = async (group: any) => {
-    if (!confirm(`"${group.title}" ${t('delete_group_confirm') || 'ni o\'chirmoqchimisiz?'}`)) return
+  const handleDeleteGroup = async (e: React.MouseEvent, group: any) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const msg = `"${group.title}" ${t('delete_group_confirm') || 'ni o\'chirmoqchimisiz?'}`
+    if (!window.confirm(msg)) return
     try {
       const res = await fetch(`/api/group?id=${group.id}`, { method: 'DELETE' })
       if (res.ok) {
-        toast.success(t('deleted_success') || 'Guruh muvaffaqiyatli o\'chirildi!')
+        toast.success(t('deleted_success'))
         loadData()
       } else {
-        toast.error(t('delete_error') || 'O\'chirishda xatolik!')
+        toast.error(t('delete_error'))
       }
     } catch {
       toast.error(t('network_error'))
@@ -313,7 +316,7 @@ export default function GroupPage() {
                 <button className="btn btn-secondary" style={{ flex: 1, padding: '0 8px', fontSize: '13px' }} onClick={() => loadMembers(group)}>
                   <Users size={14} /> {t('members_btn')}
                 </button>
-                <button className="btn btn-icon" style={{ color: 'var(--error)', background: 'transparent' }} onClick={() => handleDeleteGroup(group)}>
+                <button type="button" className="btn btn-secondary" style={{ padding: '0 12px', color: 'var(--error)' }} onClick={(e) => handleDeleteGroup(e, group)}>
                   <Trash2 size={16} />
                 </button>
               </div>

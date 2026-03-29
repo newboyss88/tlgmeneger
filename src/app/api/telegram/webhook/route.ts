@@ -194,12 +194,19 @@ export async function POST(request: Request) {
         const pr = allProducts.find((p: any) => p.id === prId);
         if (pr) {
             const actualQty = type === 'OUT' ? Math.min(pr.quantity, qty) : qty;
-            const newQuantity = type === 'OUT' ? pr.quantity - actualQty : pr.quantity + actualQty;
+            
+            if (type === 'OUT') {
+               const replyMsg = `\ud83d\udcc9 ${t.deduct}: *${actualQty}* ${pr.unit}\n\ud83d\udce6 ${t.product}: *${pr.name}*\n\n\ud83d\udc47 Iltimos, ushbu chiqim *kimga yoki qayerga* qilinganligini yozib yuboring (shu xabarga javob qilib):\n\n💬 Kod: OUT_${actualQty}_${pr.id}`;
+               await sendTelegramMessage(botToken, chatId, replyMsg, 'Markdown', { force_reply: true });
+               return NextResponse.json({ ok: true });
+            }
+
+            const newQuantity = pr.quantity + actualQty; // IN only
 
             await prisma.product.update({ where: { id: pr.id }, data: { quantity: newQuantity } });
             await prisma.transaction.create({
               data: {
-                type: type as 'IN' | 'OUT',
+                type: 'IN',
                 quantity: actualQty,
                 note: `Telegram Menyu orqali amaliyot.`,
                 source: chatType === 'private' ? 'BOT' : 'GROUP',
@@ -212,8 +219,7 @@ export async function POST(request: Request) {
             });
 
             const status = newQuantity <= pr.minQuantity ? `\ud83d\udd34 ${t.statusLow}` : `\ud83d\udfe2 ${t.statusOk}`;
-            const pType = type === 'OUT' ? `\ud83d\udcc9 ${t.deduct}` : `\ud83d\udcc8 ${t.income}`;
-            const msg = `${t.operation_success}\n\ud83d\udcf1 ${t.product}: *${pr.name}*\n${pType}: *${actualQty}* ${pr.unit}\n\ud83d\udce6 ${t.newBalance}: *${newQuantity}* ${pr.unit}\n${status}`;
+            const msg = `${t.operation_success}\n\ud83d\udcf1 ${t.product}: *${pr.name}*\n\ud83d\udcc8 ${t.income}: *${actualQty}* ${pr.unit}\n\ud83d\udce6 ${t.newBalance}: *${newQuantity}* ${pr.unit}\n${status}`;
             await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
         }
         return NextResponse.json({ ok: true })
@@ -223,6 +229,35 @@ export async function POST(request: Request) {
     // ==========================================
     // 2. TEXT COMMANDS
     // ==========================================
+    if (message.reply_to_message && message.reply_to_message.text && message.reply_to_message.text.includes('Kod: OUT_')) {
+        const replyText = message.reply_to_message.text;
+        const match = replyText.match(/OUT_(\d+)_([A-Za-z0-9\-]+)/);
+        if (match && text) {
+            const qty = parseInt(match[1]);
+            const prId = match[2];
+            const noteText = text.trim();
+            const pr = allProducts.find((p: any) => p.id === prId);
+            if (pr) {
+                const newQuantity = pr.quantity - qty;
+                await prisma.product.update({ where: { id: pr.id }, data: { quantity: newQuantity } });
+                await prisma.transaction.create({
+                  data: {
+                    type: 'OUT', quantity: qty, note: `KIMGA: ${noteText}`,
+                    source: chatType === 'private' ? 'BOT' : 'GROUP',
+                    productId: pr.id, userId: bot.userId,
+                    // @ts-ignore
+                    telegramUserId: tgUserId,
+                    groupId: bot.groups.find((g: any) => String(g.chatId) === String(chatId))?.id
+                  }
+                });
+                const status = newQuantity <= pr.minQuantity ? `\ud83d\udd34 ${t.statusLow}` : `\ud83d\udfe2 ${t.statusOk}`;
+                const msg = `${t.operation_success}\n\ud83d\udcf1 ${t.product}: *${pr.name}*\n\ud83d\udcc9 ${t.deduct}: *${qty}* ${pr.unit}\n\ud83d\udc64 Kimga: *${noteText}*\n\ud83d\udce6 ${t.newBalance}: *${newQuantity}* ${pr.unit}\n${status}`;
+                await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
+            }
+            return NextResponse.json({ ok: true });
+        }
+    }
+
     if (!text) return NextResponse.json({ ok: true });
 
     if (text === '/start' || text === '/yordam' || text === '/help' || text.startsWith('/')) {

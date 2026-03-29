@@ -180,7 +180,8 @@ export default function BotPage() {
       img.src = base64
       img.onload = () => {
         const canvas = document.createElement('canvas')
-        const MAX_SIZE = 512
+        // Oson bazaga yozish uchun kuchaytirilgan kompressiya
+        const MAX_SIZE = 256
         let width = img.width
         let height = img.height
 
@@ -200,8 +201,8 @@ export default function BotPage() {
         canvas.height = height
         const ctx = canvas.getContext('2d')
         ctx?.drawImage(img, 0, 0, width, height)
-        // Set quality to 0.7-0.8 for space efficiency
-        resolve(canvas.toDataURL('image/jpeg', 0.8))
+        // Set quality to 0.6 for space efficiency
+        resolve(canvas.toDataURL('image/jpeg', 0.6))
       }
     })
   }

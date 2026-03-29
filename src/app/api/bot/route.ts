@@ -125,38 +125,11 @@ export async function PUT(request: Request) {
             const TelegramBot = require('node-telegram-bot-api')
             const tg = new TelegramBot(botTokenToUse)
             
-            try {
-              console.log('[API BOT] Sending setMyProfilePhoto via manual multipart Buffer...')
-              const boundary = `----WebKitFormBoundaryBotAvatar${Date.now()}`
-              const start = `--${boundary}\r\nContent-Disposition: form-data; name="photo"; filename="avatar.jpg"\r\nContent-Type: ${mimeType}\r\n\r\n`
-              const end = `\r\n--${boundary}--\r\n`
-              
-              const payload = Buffer.concat([
-                Buffer.from(start, 'utf-8'),
-                buffer,
-                Buffer.from(end, 'utf-8')
-              ])
-
-              const pRes = await fetch(`https://api.telegram.org/bot${botTokenToUse}/setMyProfilePhoto`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': `multipart/form-data; boundary=${boundary}`
-                },
-                body: payload
-              })
-              const pData = await pRes.json()
-              
-              if (pData.ok) {
-                console.log('[API BOT] Telegram setMyProfilePhoto SUCCESS')
-                telegramSyncSuccess = true
-              } else {
-                console.error(`[API BOT] Telegram setMyProfilePhoto FAILED: ${pData.description}`)
-                telegramError = pData.description
-              }
-            } catch (pError: any) {
-              console.error(`[API BOT] Telegram setMyProfilePhoto Technical Error: ${pError.message}`)
-              telegramError = pError.message
-            }
+            // TELEGRAM API CHEKLOVI: Botlar o'zlarining rasmini HTTP API orqali o'zgartira olmaydi!
+            // Faqat guruhlar yoki kanallar rasmini (setChatPhoto) o'zgartirish mumkin.
+            // Bot rasmi faqat @BotFather orqali o'zgartirilishi shart.
+            // Shuning uchun bu yerda Telegram'ga rasm yuborishga urinmaymiz, faqat sayt bazasida saqlaymiz.
+            console.log('[API BOT] Bot avatarini Telegramga sinxronlash imkonsiz (API ruxsat bermaydi). Faqat DB ga saqlanadi.')
           } catch(e) { 
             console.error('[API BOT] Bot avatar sync EXCEPTION:', e) 
           }

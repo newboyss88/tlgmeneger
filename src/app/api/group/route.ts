@@ -117,6 +117,7 @@ export async function PUT(request: Request) {
        })
     }
     let telegramSyncSuccess = false
+    let telegramError = null
     if (avatar && avatar.startsWith('data:image')) {
        try {
          console.log('[API GROUP] Attempting to sync avatar to Telegram...')
@@ -136,6 +137,7 @@ export async function PUT(request: Request) {
          const pData = await photoRes.json()
          if (!pData.ok) {
            console.error('[API GROUP] Telegram setChatPhoto failed:', pData.error_code, pData.description)
+           telegramError = pData.description
          } else {
            console.log('[API GROUP] Telegram setChatPhoto success')
            telegramSyncSuccess = true
@@ -156,6 +158,14 @@ export async function PUT(request: Request) {
           ...(language !== undefined && { language }),
         },
       })
+      
+      if (avatar && !telegramSyncSuccess) {
+         return NextResponse.json({
+           ...updatedGroup,
+           warning: 'Telegram-da rasm o\'zgarmadi. Sababi: ' + (telegramError || 'Noma\'lum xato')
+         })
+      }
+
       return NextResponse.json(updatedGroup)
     } catch (dbError) {
       console.error('[API GROUP] Database update failed:', dbError)

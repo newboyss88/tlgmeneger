@@ -154,24 +154,13 @@ export default function BotPage() {
       if (res.ok) {
         const savedBotData = await res.json()
         
-        // 3. Set webhook for this bot
-        const webhookUrl = window.location.origin + '/api/telegram/webhook?botId=' + savedBotData.id
-        await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: webhookUrl }),
-        })
-        
-        // 4. Update Description on Telegram if provided
-        if (botDescription) {
-          await fetch(`https://api.telegram.org/bot${botToken}/setMyDescription`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ description: botDescription }),
-          })
-        }
+        // Webhook and Description are now handled by the backend API route directly
 
-        toast.success(`✅ @${tgUsername} ${t('bot_connected_success')}`)
+        if (savedBotData.warning) {
+          toast.error(savedBotData.warning, { duration: 6000 })
+        } else {
+          toast.success(`✅ @${tgUsername} ${t('bot_connected_success')}`)
+        }
         setIsModalOpen(false)
         loadBots()
       } else {
@@ -225,6 +214,7 @@ export default function BotPage() {
          const base64 = reader.result as string
          // Compress image to 512x512 before sending to server
          const compressed = await compressImage(base64)
+         console.log(`[DEBUG] Compressed Image Size: ${(compressed.length / 1024).toFixed(2)} KB`)
          setBotAvatar(compressed)
       }
       reader.readAsDataURL(file)

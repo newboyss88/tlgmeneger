@@ -164,7 +164,12 @@ export default function GroupPage() {
       })
 
       if (res.ok) {
-        toast.success(t('saved_success_msg'))
+        const data = await res.json()
+        if (data.warning) {
+          toast.error(data.warning, { duration: 6000 })
+        } else {
+          toast.success(t('saved_success_msg'))
+        }
         setIsEditModalOpen(false)
         loadData()
       } else {
@@ -216,6 +221,7 @@ export default function GroupPage() {
       reader.onloadend = async () => {
          const base64 = reader.result as string
          const compressed = await compressImage(base64)
+         console.log(`[DEBUG] Compressed Image Size: ${(compressed.length / 1024).toFixed(2)} KB`)
          setGroupAvatar(compressed)
       }
       reader.readAsDataURL(file)

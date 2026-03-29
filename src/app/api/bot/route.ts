@@ -101,6 +101,7 @@ export async function PUT(request: Request) {
     if (language !== undefined) updateData.language = language
 
     let telegramSyncSuccess = false
+    let telegramError = null
     // 0. Auto setWebhook and Avatar Sync BEFORE main DB update or alongside
     const botTokenToUse = (token || existing?.token)?.trim()
     if (botTokenToUse) {
@@ -133,6 +134,7 @@ export async function PUT(request: Request) {
             const pData = await photoRes.json()
             if (!pData.ok) {
               console.error(`[API BOT] Telegram setBotPhoto FAILED: [${pData.error_code}] ${pData.description}`)
+              telegramError = pData.description
             } else {
               console.log('[API BOT] Telegram setBotPhoto SUCCESS')
               telegramSyncSuccess = true
@@ -158,6 +160,15 @@ export async function PUT(request: Request) {
           userId: (session.user as any).id,
         },
       })
+      
+      // If telegram had a soft failure, we still returned the bot, but with a warning
+      if (avatar && !telegramSyncSuccess) {
+         return NextResponse.json({ 
+           ...bot, 
+           warning: 'Telegram-da rasm o\'zgarmadi. Sababi: ' + (telegramError || 'Noma\'lum xato')
+         })
+      }
+
       return NextResponse.json(bot)
     } catch (dbError) {
       console.error('[API BOT] Database update failed:', dbError)

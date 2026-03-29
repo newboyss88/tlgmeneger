@@ -169,13 +169,13 @@ export async function POST(request: Request) {
             const buttons = [
               [
                 { text: `\ud83d\udcc9 -1`, callback_data: `act_out_1_${pr.id}` },
-                { text: `\ud83d\udcc9 -5`, callback_data: `act_out_5_${pr.id}` },
-                { text: `\ud83d\udcc9 -10`, callback_data: `act_out_10_${pr.id}` }
+                { text: `\ud83d\udcc9 -2`, callback_data: `act_out_2_${pr.id}` },
+                { text: `\ud83d\udcc9 -3`, callback_data: `act_out_3_${pr.id}` }
               ],
               [
                 { text: `\ud83d\udcc8 +1`, callback_data: `act_in_1_${pr.id}` },
-                { text: `\ud83d\udcc8 +5`, callback_data: `act_in_5_${pr.id}` },
-                { text: `\ud83d\udcc8 +10`, callback_data: `act_in_10_${pr.id}` }
+                { text: `\ud83d\udcc8 +2`, callback_data: `act_in_2_${pr.id}` },
+                { text: `\ud83d\udcc8 +3`, callback_data: `act_in_3_${pr.id}` }
               ],
               [{ text: t.back, callback_data: `wh_${pr.warehouseId}` }]
             ];

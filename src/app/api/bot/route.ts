@@ -100,32 +100,28 @@ export async function PUT(request: Request) {
     if (avatar !== undefined) updateData.avatar = avatar
     if (language !== undefined) updateData.language = language
 
-    const bot = await (prisma.bot as any).update({
-      where: { id },
-      data: updateData,
-    })
-
-    // Auto setWebhook
+    let telegramSyncSuccess = false
+    // 0. Auto setWebhook and Avatar Sync BEFORE main DB update or alongside
     const botTokenToUse = (token || existing?.token)?.trim()
     if (botTokenToUse) {
-       const origin = new URL(request.url).origin
-       await fetch(`https://api.telegram.org/bot${botTokenToUse}/setWebhook`, {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ url: `${origin}/api/telegram/webhook?botId=${bot.id}` })
-       }).catch(console.error)
+        const origin = new URL(request.url).origin
+        fetch(`https://api.telegram.org/bot${botTokenToUse}/setWebhook`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: `${origin}/api/telegram/webhook?botId=${id}` })
+        }).catch(err => console.error('Bot webhook error:', err))
 
-        // 4. Update Avatar on Telegram if provided
+        // Update Avatar on Telegram if provided
         if (avatar && avatar.startsWith('data:image')) {
           try {
+            console.log('[API BOT] Attempting to sync avatar to Telegram...')
             const base64Data = avatar.split(',')[1]
             const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
             const buffer = Buffer.from(base64Data, 'base64')
             
-            // Note: Use File object for multi-part boundary and name support
-            const file = new File([buffer], 'avatar.jpg', { type: mimeType })
+            const blob = new Blob([buffer], { type: mimeType })
             const formData = new FormData()
-            formData.append('photo', file)
+            formData.append('photo', blob, 'avatar.jpg')
             
             const photoRes = await fetch(`https://api.telegram.org/bot${botTokenToUse}/setBotPhoto`, {
               method: 'POST',
@@ -134,27 +130,43 @@ export async function PUT(request: Request) {
             
             const pData = await photoRes.json()
             if (!pData.ok) {
-              console.error('Telegram setBotPhoto failed:', pData.error_code, pData.description)
+              console.error('[API BOT] Telegram setBotPhoto failed:', pData.error_code, pData.description)
             } else {
-              console.log('Telegram setBotPhoto success')
+              console.log('[API BOT] Telegram setBotPhoto success')
+              telegramSyncSuccess = true
             }
           } catch(e) { 
-            console.error('Bot avatar update error:', e) 
+            console.error('[API BOT] Bot avatar sync technical error:', e) 
           }
         }
     }
 
-    await prisma.auditLog.create({
-      data: {
-        action: 'UPDATE',
-        entity: 'Bot',
-        entityId: bot.id,
-        details: JSON.stringify({ updated: Object.keys(updateData) }),
-        userId: (session.user as any).id,
-      },
-    })
-
-    return NextResponse.json(bot)
+    try {
+      const bot = await (prisma.bot as any).update({
+        where: { id },
+        data: updateData,
+      })
+      
+      await prisma.auditLog.create({
+        data: {
+          action: 'UPDATE',
+          entity: 'Bot',
+          entityId: bot.id,
+          details: JSON.stringify({ updated: Object.keys(updateData) }),
+          userId: (session.user as any).id,
+        },
+      })
+      return NextResponse.json(bot)
+    } catch (dbError) {
+      console.error('[API BOT] Database update failed:', dbError)
+      if (telegramSyncSuccess) {
+        return NextResponse.json({ 
+          message: 'Telegram-da bot rasmi o\'zgardi, lekin ichki bazaga saqlashda xato yuz berdi (rasm hajmi juda katta bo\'lishi mumkin).', 
+          success: true 
+        })
+      }
+      throw dbError
+    }
   } catch (error) {
     console.error('Bot PUT error:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

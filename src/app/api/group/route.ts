@@ -116,17 +116,18 @@ export async function PUT(request: Request) {
            body: JSON.stringify({ chat_id: chatId, description })
        })
     }
+    let telegramSyncSuccess = false
     if (avatar && avatar.startsWith('data:image')) {
        try {
+         console.log('[API GROUP] Attempting to sync avatar to Telegram...')
          const base64Data = avatar.split(',')[1]
          const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
          const buffer = Buffer.from(base64Data, 'base64')
          
-         // Note: Use File for better Node.js FormData compatibility
-         const file = new File([buffer], 'photo.jpg', { type: mimeType })
+         const blob = new Blob([buffer], { type: mimeType })
          const formData = new FormData()
          formData.append('chat_id', chatId)
-         formData.append('photo', file)
+         formData.append('photo', blob, 'photo.jpg')
          
          const photoRes = await fetch(`https://api.telegram.org/bot${botToken}/setChatPhoto`, {
              method: 'POST',
@@ -134,27 +135,39 @@ export async function PUT(request: Request) {
          })
          const pData = await photoRes.json()
          if (!pData.ok) {
-           console.error('Group Avatar setChatPhoto failed:', pData.error_code, pData.description)
+           console.error('[API GROUP] Telegram setChatPhoto failed:', pData.error_code, pData.description)
          } else {
-           console.log('Group Avatar setChatPhoto success')
+           console.log('[API GROUP] Telegram setChatPhoto success')
+           telegramSyncSuccess = true
          }
        } catch (err) {
-         console.error('Group Avatar update error:', err)
+         console.error('[API GROUP] Group Avatar sync technical error:', err)
        }
     }
 
-    const updatedGroup = await (prisma.group as any).update({
-      where: { id },
-      data: {
-        ...(autoReply !== undefined && { autoReply }),
-        ...(title && { title }),
-        ...(description !== undefined && { description }),
-        ...(avatar !== undefined && { avatar }),
-        ...(language !== undefined && { language }),
-      },
-    })
-
-    return NextResponse.json(updatedGroup)
+    try {
+      const updatedGroup = await (prisma.group as any).update({
+        where: { id },
+        data: {
+          ...(autoReply !== undefined && { autoReply }),
+          ...(title && { title }),
+          ...(description !== undefined && { description }),
+          ...(avatar !== undefined && { avatar }),
+          ...(language !== undefined && { language }),
+        },
+      })
+      return NextResponse.json(updatedGroup)
+    } catch (dbError) {
+      console.error('[API GROUP] Database update failed:', dbError)
+      if (telegramSyncSuccess) {
+        // If Telegram sync was OK, don't return 500, but warn about DB
+        return NextResponse.json({ 
+          message: 'Telegram-da rasm o\'zgardi, lekin ichki bazaga saqlashda xato yuz berdi (rasm hajmi juda katta bo\'lishi mumkin).', 
+          success: true 
+        })
+      }
+      throw dbError // Let the outer catch handle it
+    }
   } catch (error) {
     console.error('Group PUT error:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

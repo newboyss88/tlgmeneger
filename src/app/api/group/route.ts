@@ -164,11 +164,10 @@ export async function PUT(request: Request) {
 
     let updatedGroup: any = null
     try {
-      // 1. First update basic fields (excluding avatar to be safe from size limits)
+      // 1. First update basic fields (excluding avatar and description because description is not in schema)
       const basicFields = {
         ...(autoReply !== undefined && { autoReply }),
         ...(title && { title }),
-        ...(description !== undefined && { description }),
         ...(language !== undefined && { language }),
       }
 

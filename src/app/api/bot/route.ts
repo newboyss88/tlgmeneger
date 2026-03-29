@@ -114,6 +114,23 @@ export async function PUT(request: Request) {
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({ url: `${origin}/api/telegram/webhook?botId=${bot.id}` })
        }).catch(console.error)
+
+       // 4. Update Avatar on Telegram if provided
+       if (avatar && avatar.startsWith('data:image')) {
+         try {
+           const base64Data = avatar.split(',')[1]
+           const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
+           const buffer = Buffer.from(base64Data, 'base64')
+           const blob = new Blob([buffer], { type: mimeType })
+           const formData = new FormData()
+           formData.append('photo', blob, 'avatar.jpg')
+           
+           await fetch(`https://api.telegram.org/bot${botTokenToUse}/setBotPhoto`, {
+             method: 'POST',
+             body: formData
+           }).catch(console.error)
+         } catch(e) { console.error('Bot avatar upload error:', e) }
+       }
     }
 
     await prisma.auditLog.create({

@@ -155,3 +155,34 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) return NextResponse.json({ error: 'Group ID kerak' }, { status: 400 })
+
+    await prisma.group.delete({
+      where: { id },
+    })
+
+    await prisma.auditLog.create({
+      data: {
+        action: 'DELETE',
+        entity: 'Group',
+        entityId: id,
+        details: '{}',
+        userId: (session.user as any).id,
+      },
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Group DELETE error:', error)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}

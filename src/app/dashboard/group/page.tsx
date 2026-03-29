@@ -210,11 +210,18 @@ export default function GroupPage() {
 
   // Future expansion: Delete Group API wrapper
   const handleDeleteGroup = async (group: any) => {
-    if (!confirm(`"${group.title}" ${t('delete_group_confirm')}`)) return
+    if (!confirm(`"${group.title}" ${t('delete_group_confirm') || 'ni o\'chirmoqchimisiz?'}`)) return
     try {
-      // Assuming a DELETE /api/group?id=... will be implemented or exist
-      toast.error(t('delete_group_api_error'))
-    } catch {}
+      const res = await fetch(`/api/group?id=${group.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success(t('deleted_success') || 'Guruh muvaffaqiyatli o\'chirildi!')
+        loadData()
+      } else {
+        toast.error(t('delete_error') || 'O\'chirishda xatolik!')
+      }
+    } catch {
+      toast.error(t('network_error'))
+    }
   }
 
   const getRoleLabel = (status: string) => {
@@ -439,6 +446,20 @@ export default function GroupPage() {
                 <div className="input-group">
                   <label>{t('group_desc')}</label>
                   <textarea className="input textarea" value={groupDescription} onChange={(e) => setGroupDescription(e.target.value)} rows={3} />
+                </div>
+
+                <div className="input-group">
+                  <label>{t('language')}</label>
+                  <select 
+                    className="input" 
+                    value={groupLanguage} 
+                    onChange={(e) => setGroupLanguage(e.target.value)}
+                    style={{ appearance: 'auto' }}
+                  >
+                    <option value="uz">O'zbekcha</option>
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                  </select>
                 </div>
 
                 <div style={{

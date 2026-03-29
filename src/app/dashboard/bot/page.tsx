@@ -99,12 +99,14 @@ export default function BotPage() {
   }
 
   const handleDeleteBot = async (botId: string) => {
-    if (!confirm(t('delete_wh_confirm'))) return
+    if (!confirm(t('delete_wh_confirm') || 'Haqiqatan ham ushbu botni o\'chirmoqchimisiz?')) return
     try {
       const res = await fetch(`/api/bot?id=${botId}`, { method: 'DELETE' })
       if (res.ok) {
+        toast.success(t('deleted_success') || 'Bot muvaffaqiyatli o\'chirildi!')
+        loadBots()
       } else {
-        toast.error(t('delete_error'))
+        toast.error(t('delete_error') || 'O\'chirishda xatolik!')
       }
     } catch {
       toast.error(t('network_error'))

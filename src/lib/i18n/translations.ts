@@ -372,6 +372,7 @@ export const translations = {
     clear_history_desc: 'Barcha amaliyotlar tarixi butunlay o\'chiriladi. Bu amalni ortga qaytarib bo\'lmaydi.',
     clear: 'Tozalash',
     save_error: 'Saqlashda xatolik yuz berdi!',
+    deleted_success: 'Muvaffaqiyatli o\'chirildi!',
     empty: 'Bo\'sh',
   },
   ru: {
@@ -746,6 +747,7 @@ export const translations = {
     clear_history_desc: 'Вся история операций будет удалена безвозвратно. Это действие нельзя отменить.',
     clear: 'Очистить',
     save_error: 'Произошла ошибка при сохранении!',
+    deleted_success: 'Успешно удалено!',
     empty: 'Пусто',
   },
   en: {
@@ -1113,6 +1115,7 @@ export const translations = {
     clear_history_desc: 'All activity history will be permanently deleted. This action cannot be undone.',
     clear: 'Clear',
     save_error: 'Error occurred while saving!',
+    deleted_success: 'Deleted successfully!',
     empty: 'Empty',
   },
 }

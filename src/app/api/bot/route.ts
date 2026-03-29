@@ -120,23 +120,18 @@ export async function PUT(request: Request) {
             const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
             const buffer = Buffer.from(base64Data, 'base64')
             
-            const file = new File([buffer], 'photo.jpg', { type: mimeType })
-            const formData = new FormData()
-            formData.append('photo', file)
+            // Use node-telegram-bot-api for more robust file uploading
+            const TelegramBot = require('node-telegram-bot-api')
+            const tg = new TelegramBot(botTokenToUse)
             
-            // Note: Correct method name is setMyProfilePhoto, not setBotPhoto
-            const photoRes = await fetch(`https://api.telegram.org/bot${botTokenToUse}/setMyProfilePhoto`, {
-              method: 'POST',
-              body: formData,
-            })
-            
-            const pData = await photoRes.json()
-            if (!pData.ok) {
-              console.error(`[API BOT] Telegram setMyProfilePhoto FAILED: [${pData.error_code}] ${pData.description}`)
-              telegramError = pData.description
-            } else {
+            try {
+              // Note: setMyProfilePhoto is the correct method for bots
+              await tg.setMyProfilePhoto(buffer)
               console.log('[API BOT] Telegram setMyProfilePhoto SUCCESS')
               telegramSyncSuccess = true
+            } catch (pError: any) {
+              console.error(`[API BOT] Telegram setMyProfilePhoto FAILED: ${pError.message}`)
+              telegramError = pError.message
             }
           } catch(e) { 
             console.error('[API BOT] Bot avatar sync EXCEPTION:', e) 

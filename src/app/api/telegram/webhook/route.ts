@@ -153,7 +153,9 @@ export async function POST(request: Request) {
         const wId = data.replace('wh_', '');
         const wh = bot.warehouses.find((w: any) => w.id === wId);
         if (wh) {
-            const buttons = wh.products.slice(0, 50).map((p: any) => [{ text: `\ud83d\udce6 ${p.name} (${p.quantity} ${p.unit})`, callback_data: `pr_${p.id}` }]);
+            const buttons = wh.products.slice(0, 50).map((p: any) => [
+              { text: `\ud83d\udce6 ${p.name}${p.sku ? ` - ${p.sku}` : ''} (${p.quantity} ${p.unit})`, callback_data: `pr_${p.id}` }
+            ]);
             buttons.push([{ text: t.back, callback_data: 'menu' }]);
             await sendTelegramMessage(botToken, chatId, `*${wh.name}*\n\n${t.select_product}`, 'Markdown', { inline_keyboard: buttons });
         }

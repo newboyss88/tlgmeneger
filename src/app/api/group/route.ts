@@ -125,10 +125,10 @@ export async function PUT(request: Request) {
          const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
          const buffer = Buffer.from(base64Data, 'base64')
          
-         const blob = new Blob([buffer], { type: mimeType })
+         const file = new File([buffer], 'photo.jpg', { type: mimeType })
          const formData = new FormData()
          formData.append('chat_id', chatId)
-         formData.append('photo', blob, 'photo.jpg')
+         formData.append('photo', file)
          
          const photoRes = await fetch(`https://api.telegram.org/bot${botToken}/setChatPhoto`, {
              method: 'POST',

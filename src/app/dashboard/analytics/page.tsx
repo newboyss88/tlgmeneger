@@ -85,9 +85,9 @@ export default function AnalyticsPage() {
   }
 
   const tDict = {
-     uz: { report: 'Hisobot', kirim: 'Kirim', chiqim: 'Chiqim', jami: 'Jami', date: 'Sana', user: 'Xodim', product: 'Mahsulot', qty: 'Miqdor', source: 'Manba', sum_ops: 'Jami amaliyotlar', sum_ded: 'Jami chiqim', sum_inc: 'Jami kirim' },
-     ru: { report: 'Отчет', kirim: 'Приход', chiqim: 'Расход', jami: 'Итого', date: 'Дата', user: 'Сотрудник', product: 'Товар', qty: 'Кол-во', source: 'Источник', sum_ops: 'Всего операций', sum_ded: 'Всего расход', sum_inc: 'Всего приход' },
-     en: { report: 'Report', kirim: 'Income', chiqim: 'Expense', jami: 'Summary', date: 'Date', user: 'Employee', product: 'Product', qty: 'Quantity', source: 'Source', sum_ops: 'Total Operations', sum_ded: 'Total Expense', sum_inc: 'Total Income' }
+     uz: { report: 'Hisobot', kirim: 'Kirim', chiqim: 'Chiqim', jami: 'Jami', date: 'Sana', user: 'Xodim', product: 'Mahsulot', qty: 'Miqdor', source: 'Manba', sum_ops: 'Jami amaliyotlar', sum_ded: 'Jami chiqim', sum_inc: 'Jami kirim', metric: 'Ko\'rsatkich', val: 'Qiymat' },
+     ru: { report: 'Отчет', kirim: 'Приход', chiqim: 'Расход', jami: 'Итого', date: 'Дата', user: 'Сотрудник', product: 'Товар', qty: 'Кол-во', source: 'Источник', sum_ops: 'Всего операций', sum_ded: 'Всего расход', sum_inc: 'Всего приход', metric: 'Метрика', val: 'Значение' },
+     en: { report: 'Report', kirim: 'Income', chiqim: 'Expense', jami: 'Summary', date: 'Date', user: 'Employee', product: 'Product', qty: 'Quantity', source: 'Source', sum_ops: 'Total Operations', sum_ded: 'Total Expense', sum_inc: 'Total Income', metric: 'Metric', val: 'Value' }
   }
 
   const executeExport = async () => {
@@ -110,9 +110,9 @@ export default function AnalyticsPage() {
       const wsIn = XLSX.utils.json_to_sheet(formatData(inTxs))
       const wsOut = XLSX.utils.json_to_sheet(formatData(outTxs))
       const wsSum = XLSX.utils.json_to_sheet([
-        { 'Metric': dict.sum_ops, 'Value': data.totalTransactions },
-        { 'Metric': dict.sum_ded, 'Value': data.totalDeductions },
-        { 'Metric': dict.sum_inc, 'Value': data.totalIncomes },
+        { [dict.metric]: dict.sum_ops, [dict.val]: data.totalTransactions },
+        { [dict.metric]: dict.sum_ded, [dict.val]: data.totalDeductions },
+        { [dict.metric]: dict.sum_inc, [dict.val]: data.totalIncomes },
       ])
 
       const wb = XLSX.utils.book_new()
@@ -129,6 +129,21 @@ export default function AnalyticsPage() {
       const autoTable = autoTableModule.default || autoTableModule
       
       const doc = new jsPDF()
+      let fontName = 'helvetica'
+      
+      // Cyrillic support required
+      try {
+        const fontRes = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf')
+        const buffer = await fontRes.arrayBuffer()
+        const fontBase64 = btoa(new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), ''))
+        doc.addFileToVFS('Roboto-Regular.ttf', fontBase64)
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal')
+        fontName = 'Roboto'
+        doc.setFont('Roboto')
+      } catch (e) {
+        console.warn("Could not load cyrillic font", e)
+      }
+
       const head = [[dict.date, dict.user, dict.product, 'SKU', dict.qty, dict.source]]
       
       const getBody = (txs: any[]) => txs.map(t => [
@@ -141,7 +156,7 @@ export default function AnalyticsPage() {
       
       autoTable(doc, {
         startY: 30, head, body: getBody(outTxs), theme: 'striped',
-        styles: { font: 'helvetica', fontSize: 9 }, headStyles: { fillColor: [244, 63, 94] }
+        styles: { font: fontName, fontSize: 9 }, headStyles: { fillColor: [244, 63, 94] }
       })
 
       doc.addPage()
@@ -149,7 +164,7 @@ export default function AnalyticsPage() {
       doc.text(`${dict.report} - ${dict.kirim}`, 14, 20)
       autoTable(doc, {
         startY: 30, head, body: getBody(inTxs), theme: 'striped',
-        styles: { font: 'helvetica', fontSize: 9 }, headStyles: { fillColor: [16, 185, 129] }
+        styles: { font: fontName, fontSize: 9 }, headStyles: { fillColor: [16, 185, 129] }
       })
 
       doc.addPage()
@@ -157,13 +172,13 @@ export default function AnalyticsPage() {
       doc.text(`${dict.report} - ${dict.jami}`, 14, 20)
       autoTable(doc, {
         startY: 30,
-        head: [['Metric', 'Value']],
+        head: [[dict.metric, dict.val]],
         body: [
           [dict.sum_ops, data.totalTransactions.toString()],
           [dict.sum_ded, data.totalDeductions.toString()],
           [dict.sum_inc, data.totalIncomes.toString()]
         ],
-        theme: 'grid', styles: { font: 'helvetica', fontSize: 12 }
+        theme: 'grid', styles: { font: fontName, fontSize: 12 }
       })
 
       doc.save(`${dict.report}_${new Date().getTime()}.pdf`)

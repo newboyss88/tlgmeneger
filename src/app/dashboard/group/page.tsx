@@ -309,16 +309,51 @@ export default function GroupPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                <button className="btn btn-secondary" style={{ padding: '0 8px', fontSize: '13px' }} onClick={() => openEditModal(group)}>
-                  <Settings size={14} /> {t('settings')}
+              <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ 
+                    flex: 1, 
+                    fontSize: '13px', 
+                    fontWeight: '600', 
+                    background: 'rgba(255, 255, 255, 0.03)', 
+                    backdropFilter: 'blur(10px)', 
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    transition: 'all 0.3s ease'
+                  }} 
+                  onClick={() => openEditModal(group)}
+                >
+                  <Settings size={14} className="icon-glow" /> {t('settings')}
                 </button>
-                <button className="btn btn-secondary" style={{ padding: '0 8px', fontSize: '13px' }} onClick={() => loadMembers(group)}>
-                  <Users size={14} /> {t('members_btn')}
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ 
+                    flex: 1, 
+                    fontSize: '13px', 
+                    fontWeight: '600', 
+                    background: 'rgba(255, 255, 255, 0.03)', 
+                    backdropFilter: 'blur(10px)', 
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    transition: 'all 0.3s ease'
+                  }} 
+                  onClick={() => loadMembers(group)}
+                >
+                  <Users size={14} className="icon-glow" /> {t('members_btn')}
                 </button>
-                <button type="button" className="btn btn-secondary" style={{ padding: '0 8px', fontSize: '13px', color: 'var(--error)' }} 
-                  onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ id: group.id, name: group.name }); }}>
-                  <Trash2 size={14} /> {t('delete')}
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  style={{ 
+                    padding: '0 12px', 
+                    color: 'var(--error)', 
+                    background: 'rgba(244, 63, 94, 0.05)', 
+                    backdropFilter: 'blur(10px)', 
+                    border: '1px solid rgba(244, 63, 94, 0.1)',
+                    transition: 'all 0.3s ease'
+                  }} 
+                  onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ id: group.id, name: group.name }); }}
+                >
+                  <Trash2 size={16} />
                 </button>
               </div>
             </motion.div>

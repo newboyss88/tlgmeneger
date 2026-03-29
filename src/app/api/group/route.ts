@@ -121,10 +121,12 @@ export async function PUT(request: Request) {
          const base64Data = avatar.split(',')[1]
          const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
          const buffer = Buffer.from(base64Data, 'base64')
-         const blob = new Blob([buffer], { type: mimeType })
+         
+         // Note: Use File for better Node.js FormData compatibility
+         const file = new File([buffer], 'photo.jpg', { type: mimeType })
          const formData = new FormData()
          formData.append('chat_id', chatId)
-         formData.append('photo', blob, 'photo.jpg')
+         formData.append('photo', file)
          
          const photoRes = await fetch(`https://api.telegram.org/bot${botToken}/setChatPhoto`, {
              method: 'POST',
@@ -132,10 +134,12 @@ export async function PUT(request: Request) {
          })
          const pData = await photoRes.json()
          if (!pData.ok) {
-           console.error('Group Avatar setChatPhoto error:', pData)
+           console.error('Group Avatar setChatPhoto failed:', pData.error_code, pData.description)
+         } else {
+           console.log('Group Avatar setChatPhoto success')
          }
        } catch (err) {
-         console.error('Group Avatar update structure error:', err)
+         console.error('Group Avatar update error:', err)
        }
     }
 

@@ -122,10 +122,10 @@ export async function PUT(request: Request) {
             const mimeType = avatar.split(',')[0].match(/:([^;]+);/)?.[1] || 'image/jpeg'
             const buffer = Buffer.from(base64Data, 'base64')
             
-            // Note: In Node.js environment, we use Blob from the global scope or special handling
-            const blob = new Blob([buffer], { type: mimeType })
+            // Note: Use File object for multi-part boundary and name support
+            const file = new File([buffer], 'avatar.jpg', { type: mimeType })
             const formData = new FormData()
-            formData.append('photo', blob, 'avatar.jpg')
+            formData.append('photo', file)
             
             const photoRes = await fetch(`https://api.telegram.org/bot${botTokenToUse}/setBotPhoto`, {
               method: 'POST',
@@ -134,12 +134,12 @@ export async function PUT(request: Request) {
             
             const pData = await photoRes.json()
             if (!pData.ok) {
-              console.error('Telegram setBotPhoto error:', pData)
+              console.error('Telegram setBotPhoto failed:', pData.error_code, pData.description)
             } else {
               console.log('Telegram setBotPhoto success')
             }
           } catch(e) { 
-            console.error('Bot avatar upload technical error:', e) 
+            console.error('Bot avatar update error:', e) 
           }
         }
     }

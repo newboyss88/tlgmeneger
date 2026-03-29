@@ -25,7 +25,6 @@ export default function AnalyticsPage() {
   // Filters & Export State
   const [bots, setBots] = useState<any[]>([])
   const [selectedBots, setSelectedBots] = useState<string[]>([])
-  const [selectedGroups, setSelectedGroups] = useState<string[]>([])
   const [exportModal, setExportModal] = useState(false)
   const [exportFormat, setExportFormat] = useState<'excel'|'pdf'>('excel')
   const [exportLang, setExportLang] = useState<'uz'|'ru'|'en'>('uz')
@@ -35,7 +34,6 @@ export default function AnalyticsPage() {
     try {
       const q = new URLSearchParams()
       if (selectedBots.length) q.set('bots', selectedBots.join(','))
-      if (selectedGroups.length) q.set('groups', selectedGroups.join(','))
       
       const res = await fetch('/api/analytics?' + q.toString())
       const d = await res.json()
@@ -66,7 +64,7 @@ export default function AnalyticsPage() {
   // Re-fetch when filters change
   useEffect(() => {
     if (!loading) fetchData()
-  }, [selectedBots, selectedGroups])
+  }, [selectedBots])
 
   const handleClearHistory = async () => {
     setClearing(true)
@@ -315,20 +313,6 @@ export default function AnalyticsPage() {
                        else setSelectedBots(p => p.filter(id => id !== b.id))
                     }} />
                     {b.name || 'Bot'}
-                 </label>
-              ))}
-           </div>
-        </div>
-        <div style={{ flex: '1', minWidth: '200px' }}>
-           <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px', fontWeight: 600 }}>Guruhlar</p>
-           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {bots.flatMap(b => b.groups || []).map((g: any) => (
-                 <label key={g.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px' }}>
-                    <input type="checkbox" checked={selectedGroups.includes(g.id)} onChange={(e) => {
-                       if(e.target.checked) setSelectedGroups(p => [...p, g.id])
-                       else setSelectedGroups(p => p.filter(id => id !== g.id))
-                    }} />
-                    {g.title || 'Guruh'}
                  </label>
               ))}
            </div>

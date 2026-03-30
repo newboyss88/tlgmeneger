@@ -2,9 +2,15 @@ import nodemailer from 'nodemailer'
 import prisma from './prisma'
 
 export async function sendMail({ to, subject, text, html }: { to: string, subject: string, text?: string, html?: string }) {
-  // 1. Get SMTP settings from database (any user who has them, usually Super Admin)
+  // 1. Get SMTP settings from Super Admin (Global config)
+  const superAdmin = await prisma.user.findFirst({
+    where: { role: 'SUPER_ADMIN' },
+    select: { id: true }
+  })
+
   const smtpSettings = await prisma.setting.findMany({
     where: {
+      userId: superAdmin?.id,
       key: { in: ['smtpHost', 'smtpPort', 'smtpUser', 'smtpPass', 'smtpFrom'] }
     }
   })

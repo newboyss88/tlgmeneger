@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
     // Email jo'natish
     const appName = process.env.NEXT_PUBLIC_APP_NAME || 'TelegramManager'
-    await sendMail({
+    const mailResult = await sendMail({
       to: user.email,
       subject: `Tasdiqlash kodi - ${appName}`,
       text: `Sizning tasdiqlash kodingiz: ${code}`,
@@ -77,6 +77,10 @@ export async function POST(req: Request) {
         </div>
       `
     })
+
+    if (!mailResult.success) {
+      throw new Error(typeof mailResult.error === 'string' ? mailResult.error : 'SMTP ulanishda xatolik yuz berdi')
+    }
 
     return NextResponse.json({ success: true, twoFactorEnabled: true })
   } catch (error: any) {

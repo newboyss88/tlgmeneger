@@ -21,7 +21,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [is2faRequired, setIs2faRequired] = useState(false)
   const [twoFactorCode, setTwoFactorCode] = useState('')
-  const [deliveryStatus, setDeliveryStatus] = useState({ email: false, telegram: false })
+  const [deliveryStatus, setDeliveryStatus] = useState({ 
+    email: false, 
+    telegram: false, 
+    tgError: null as string | null,
+    botUsername: null as string | null
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,7 +54,9 @@ export default function LoginPage() {
         if (sendData.success) {
           setDeliveryStatus({
             email: !!sendData.channels?.email,
-            telegram: !!sendData.channels?.telegram
+            telegram: !!sendData.channels?.telegram,
+            tgError: sendData.channels?.tgError || null,
+            botUsername: sendData.botUsername || null
           })
           setIs2faRequired(true)
         } else {
@@ -273,11 +280,51 @@ export default function LoginPage() {
                     <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: deliveryStatus.email ? 'var(--accent-green)' : 'var(--text-tertiary)' }} />
                     {t('code_sent_email')}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: deliveryStatus.telegram ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: deliveryStatus.telegram ? 'var(--accent-green)' : 'var(--accent-rose)' }} />
-                    {deliveryStatus.telegram ? t('code_sent_tg') : t('code_not_sent_tg')}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: (deliveryStatus.telegram) ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: (deliveryStatus.telegram) ? 'var(--accent-green)' : 'var(--accent-rose)' }} />
+                    {deliveryStatus.telegram 
+                      ? t('code_sent_tg') 
+                      : (deliveryStatus.tgError === 'chat_not_found' ? t('code_not_started_tg') : t('code_not_sent_tg'))
+                    }
                   </div>
                 </div>
+
+                {(!deliveryStatus.telegram && deliveryStatus.botUsername) && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    style={{
+                      marginTop: '20px',
+                      padding: '16px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'rgba(124, 58, 237, 0.05)',
+                      border: '1px dashed var(--primary-300)',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                      {t('start_bot_instruction')}
+                    </p>
+                    <a 
+                      href={`https://t.me/${deliveryStatus.botUsername}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-outline"
+                      style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '8px',
+                        padding: '8px 16px',
+                        fontSize: '14px',
+                        color: 'var(--primary-500)',
+                        borderColor: 'var(--primary-400)'
+                      }}
+                    >
+                      <Bot size={16} />
+                      @{deliveryStatus.botUsername}
+                    </a>
+                  </motion.div>
+                )}
               </div>
 
               {error && (
@@ -303,16 +350,32 @@ export default function LoginPage() {
                 {loading ? <Loader2 size={20} className="animate-spin" /> : <>{t('verify')} <ArrowRight size={18} /></>}
               </button>
 
-              <button
-                type="button"
-                onClick={() => setIs2faRequired(false)}
-                style={{
-                  background: 'none', border: 'none', color: 'var(--text-secondary)',
-                  fontSize: '14px', fontWeight: '500', cursor: 'pointer',
-                }}
-              >
-                {t('cancel')}
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const credential = loginType === 'email' ? email : phone;
+                    handleSubmit({ preventDefault: () => {}, target: null } as any);
+                  }}
+                  style={{
+                    background: 'none', border: 'none', color: 'var(--primary-400)',
+                    fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+                  }}
+                >
+                  {t('check_again')}
+                </button>
+                <span style={{ color: 'var(--divider)', fontSize: '14px' }}>|</span>
+                <button
+                  type="button"
+                  onClick={() => setIs2faRequired(false)}
+                  style={{
+                    background: 'none', border: 'none', color: 'var(--text-tertiary)',
+                    fontSize: '13px', fontWeight: '500', cursor: 'pointer',
+                  }}
+                >
+                  {t('cancel')}
+                </button>
+              </div>
             </form>
           )}
         </div>

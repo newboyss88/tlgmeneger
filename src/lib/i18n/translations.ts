@@ -260,6 +260,9 @@ export const translations = {
     code_sent_tg: 'Kod botingizga (Telegram) yuborildi ✅',
     code_sent_email: 'Kod pochtangizga yuborildi ✅',
     code_not_sent_tg: 'Telegram bog\'lanmagan ❌',
+    code_not_started_tg: 'Botni boshlang ⚠️',
+    start_bot_instruction: 'Kod olish uchun ushbu botni boshlang:',
+    check_again: 'Qayta yuborish',
     
     // Time & Months
     just_now: 'Hozirgina',
@@ -828,6 +831,9 @@ export const translations = {
     code_sent_tg: 'Код отправлен в Telegram ✅',
     code_sent_email: 'Код отправлен на почту ✅',
     code_not_sent_tg: 'Telegram не привязан ❌',
+    code_not_started_tg: 'Запустите бота ⚠️',
+    start_bot_instruction: 'Запустите этого бота, чтобы получить код:',
+    check_again: 'Отправить снова',
   },
   en: {
     hero_title: 'Manage Your Telegram Bot Professionally',
@@ -1241,5 +1247,8 @@ export const translations = {
     code_sent_tg: 'Code sent via Telegram ✅',
     code_sent_email: 'Code sent via Email ✅',
     code_not_sent_tg: 'Telegram not linked ❌',
+    code_not_started_tg: 'Start the bot ⚠️',
+    start_bot_instruction: 'Start this bot to receive the code:',
+    check_again: 'Resend Code',
   },
 }

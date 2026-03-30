@@ -84,8 +84,15 @@ export async function POST(req: Request) {
       `
     })
 
+    // 1.5 Aktiv bot ma'lumotlarini olish (SUI/UX uchun)
+    const activeBot = await prisma.bot.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    const botUsername = activeBot?.username || null;
+
     // 2. Telegram yuborish (agar telegramId bo'lsa)
-    let tgResult: { success: boolean; error?: any } = { success: false, error: 'Telegram not linked' }
+    let tgResult: { success: boolean; error?: any; code?: number } = { success: false, error: 'Telegram not linked' }
     let telegramId = user.telegramId;
 
     // Self-healing: Agar telegramId bo'lmasa, telegramUsername orqali qidirib ko'rish
@@ -117,7 +124,18 @@ export async function POST(req: Request) {
     if (telegramId) {
        const tgMsg = `🔐 *${appName}* 2FA Tasdiqlash Kodi\n\nSizning kirish kodingiz: \`${code}\`\n\n_Ushbu kod 10 daqiqa yaroqli._`
        const res = await sendTelegramMessage(telegramId, tgMsg, 'Markdown')
-       tgResult = { success: res.success, error: res.error }
+       
+       // Telegram API xatolarini tahlil qilish
+       let errorType = res.error;
+       if (res.error?.includes('chat not found')) {
+         errorType = 'chat_not_found';
+       }
+       
+       tgResult = { 
+         success: res.success, 
+         error: errorType,
+         code: res.success ? 200 : 400
+       }
     }
 
     // Agar ikkalasi ham xato bo'lsa, xabar berish. 
@@ -130,9 +148,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ 
       success: true, 
       twoFactorEnabled: true,
+      botUsername,
       channels: {
         email: mailResult.success,
-        telegram: tgResult.success
+        telegram: tgResult.success,
+        tgError: tgResult.error
       }
     })
   } catch (error: any) {

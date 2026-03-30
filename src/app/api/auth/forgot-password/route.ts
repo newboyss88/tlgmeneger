@@ -28,19 +28,29 @@ export async function POST(request: Request) {
     )
 
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${token}`
+    const lang = (user.language as 'uz' | 'ru' | 'en') || 'uz'
+    const t = (require('@/lib/i18n/translations').default)[lang]
 
     const mailResult = await sendMail({
       to: email,
-      subject: 'Parolni tiklash - TelegramManager',
-      text: `Parolingizni tiklash uchun ushbu havolaga bosing: ${resetUrl}`,
+      subject: `${t.email_reset_subject} - TelegramManager`,
+      text: `${t.email_reset_body}\n${resetUrl}`,
       html: `
-        <div style="font-family: sans-serif; padding: 20px; color: #333;">
-          <h2>Parolni tiklash</h2>
-          <p>Siz TelegramManager hisobingiz uchun parolni tiklashni so'radingiz.</p>
-          <p>Parolni o'zgartirish uchun quyidagi tugmani bosing:</p>
-          <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #7c3aed; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0;">Parolni tiklash</a>
-          <p>Ushbu havola 1 soat davomida amal qiladi.</p>
-          <p>Agar siz bu so'rovni yubormagan bo'lsangiz, ushbu xatga e'tibor bermang.</p>
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+          <h2 style="color: #7c3aed; margin-bottom: 16px;">${t.email_reset_title}</h2>
+          <p style="color: #475569; font-size: 16px; line-height: 24px;">
+            ${t.email_reset_body}
+          </p>
+          <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #7c3aed; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 24px 0;">
+            ${t.email_reset_button}
+          </a>
+          <p style="color: #64748b; font-size: 14px;">
+            ${t.email_reset_footer}
+          </p>
+          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+          <p style="color: #94a3b8; font-size: 12px; text-align: center;">
+            &copy; ${new Date().getFullYear()} TelegramManager. Barcha huquqlar himoyalangan.
+          </p>
         </div>
       `
     })

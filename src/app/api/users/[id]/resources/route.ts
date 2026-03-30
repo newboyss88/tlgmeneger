@@ -11,14 +11,27 @@ export async function GET(request: Request, context: any) {
     }
 
     const { id: targetUserId } = await context.params
-    const bots = await prisma.bot.findMany({ where: { userId: targetUserId } })
+    
+    const user = await prisma.user.findUnique({
+      where: { id: targetUserId }
+    })
+    
+    const settings = await prisma.setting.findMany({
+      where: { userId: targetUserId }
+    })
+
+    const bots = await prisma.bot.findMany({ 
+      where: { userId: targetUserId },
+      orderBy: { createdAt: 'desc' }
+    })
     
     const botIds = bots.map(b => b.id)
     const groups = await prisma.group.findMany({
-      where: { botId: { in: botIds } }
+      where: { botId: { in: botIds } },
+      orderBy: { createdAt: 'desc' }
     })
 
-    return NextResponse.json({ bots, groups })
+    return NextResponse.json({ user, bots, groups, settings })
   } catch (error) {
     console.error('Resources GET error:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

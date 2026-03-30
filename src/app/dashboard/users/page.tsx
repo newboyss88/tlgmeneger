@@ -4,12 +4,11 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users, Search, Shield, Ban, Trash2, Edit2, X,
-  Save, Mail, Phone, MoreHorizontal, UserCheck, UserX, MessageSquare, Loader2, Eye, Bot, Hash
+  Save, Mail, Phone, MoreHorizontal, UserCheck, UserX, MessageSquare, Loader2, Eye, Bot, Hash, Key, Settings, Plus, RefreshCw, AlertCircle
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useSession } from 'next-auth/react'
-
 interface UserItem {
   id: string
   name: string
@@ -19,6 +18,8 @@ interface UserItem {
   isBlocked: boolean
   createdAt: string
   telegramId: string | null
+  twoFactorEnabled: boolean
+  language: string
 }
 
 const roleColors: Record<string, string> = {
@@ -45,15 +46,16 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRole, setFilterRole] = useState('ALL')
   
-  const [editingUser, setEditingUser] = useState<UserItem | null>(null)
-  const [messagingUser, setMessagingUser] = useState<UserItem | null>(null)
-  
-  // Monitoring User
+  // Full Control Panel State
   const [monitoringUser, setMonitoringUser] = useState<UserItem | null>(null)
   const [userResources, setUserResources] = useState<{bots: any[], groups: any[]}>({ bots: [], groups: [] })
   const [resLoading, setResLoading] = useState(false)
-
-  const [messageText, setMessageText] = useState('')
+  const [activeTab, setActiveTab] = useState<'overview' | 'bots' | 'groups' | 'settings'>('overview')
+  const [userSettings, setUserSettings] = useState<any[]>([])
+  
+  // Edit Sub-resources
+  const [editingBot, setEditingBot] = useState<any | null>(null)
+  
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [userToDelete, setUserToDelete] = useState<UserItem | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -84,31 +86,148 @@ export default function UsersPage() {
     return matchSearch && matchRole
   })
 
-  // EDIT USER
-  const handleEditSave = async () => {
-    if (!editingUser) return
+  // EDIT USER PROFILE
+  const handleSaveProfile = async (targetUser: any) => {
     setIsSubmitting(true)
     try {
-      const res = await fetch(`/api/users/${editingUser.id}`, {
+      const res = await fetch(`/api/users/${targetUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: editingUser.name,
-          phone: editingUser.phone,
-          role: editingUser.role,
-          telegramId: editingUser.telegramId
+          name: targetUser.name,
+          phone: targetUser.phone,
+          role: targetUser.role,
+          telegramId: targetUser.telegramId
         })
       })
       if (res.ok) {
         toast.success(t('save_success'))
-        setUsers(users.map(u => u.id === editingUser.id ? editingUser : u))
-        setEditingUser(null)
+        setUsers(users.map(u => u.id === targetUser.id ? { ...u, ...targetUser } : u))
+        setMonitoringUser({ ...monitoringUser, ...targetUser })
       } else {
         const data = await res.json()
         toast.error(data.error || t('edit_error'))
       }
     } catch (e) {
       toast.error(t('action_error'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // ADMIN RESOURCE HANDLERS
+  const handleUpdateBot = async (botData: any) => {
+    if (!monitoringUser) return
+    setIsSubmitting(true)
+    try {
+      const res = await fetch(`/api/admin/users/${monitoringUser.id}/bots/${botData.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(botData)
+      })
+      if (res.ok) {
+        toast.success(t('save_success'))
+        setUserResources({
+          ...userResources,
+          bots: userResources.bots.map(b => b.id === botData.id ? { ...b, ...botData } : b)
+        })
+        setEditingBot(null)
+      } else {
+        toast.error(t('action_error'))
+      }
+    } catch (e) {
+      toast.error(t('server_error'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteBot = async (botId: string) => {
+    if (!monitoringUser || !confirm(t('delete_confirm_bot'))) return
+    setIsSubmitting(true)
+    try {
+      const res = await fetch(`/api/admin/users/${monitoringUser.id}/bots/${botId}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success(t('delete_success'))
+        setUserResources({
+          ...userResources,
+          bots: userResources.bots.filter(b => b.id !== botId)
+        })
+      } else {
+        toast.error(t('action_error'))
+      }
+    } catch (e) {
+      toast.error(t('server_error'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteGroup = async (groupId: string) => {
+    if (!monitoringUser || !confirm(t('delete_confirm_group'))) return
+    setIsSubmitting(true)
+    try {
+      const res = await fetch(`/api/admin/users/${monitoringUser.id}/groups/${groupId}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success(t('delete_success'))
+        setUserResources({
+          ...userResources,
+          groups: userResources.groups.filter(g => g.id !== groupId)
+        })
+      } else {
+        toast.error(t('action_error'))
+      }
+    } catch (e) {
+      toast.error(t('server_error'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleSaveSetting = async (key: string, value: string) => {
+    if (!monitoringUser) return
+    setIsSubmitting(true)
+    try {
+      const res = await fetch(`/api/admin/users/${monitoringUser.id}/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value })
+      })
+      if (res.ok) {
+        toast.success(t('save_success'))
+        const existing = userSettings.find(s => s.key === key)
+        if (existing) {
+          setUserSettings(userSettings.map(s => s.key === key ? { ...s, value } : s))
+        } else {
+          setUserSettings([...userSettings, { key, value }])
+        }
+      } else {
+        toast.error(t('action_error'))
+      }
+    } catch (e) {
+      toast.error(t('server_error'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteSetting = async (key: string) => {
+    if (!monitoringUser || !confirm(t('delete_confirm_setting'))) return
+    setIsSubmitting(true)
+    try {
+      const res = await fetch(`/api/admin/users/${monitoringUser.id}/settings`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key })
+      })
+      if (res.ok) {
+        toast.success(t('delete_success'))
+        setUserSettings(userSettings.filter(s => s.key !== key))
+      } else {
+        toast.error(t('action_error'))
+      }
+    } catch (e) {
+      toast.error(t('server_error'))
     } finally {
       setIsSubmitting(false)
     }
@@ -158,44 +277,20 @@ export default function UsersPage() {
     }
   }
 
-  // SEND TELEGRAM MESSAGE
-  const handleSendMessage = async () => {
-    if (!messagingUser?.telegramId || !messageText.trim()) return
-    setIsSubmitting(true)
-    try {
-      const res = await fetch('/api/telegram/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetTelegramId: messagingUser.telegramId,
-          messageText
-        })
-      })
-      const data = await res.json()
-      if (res.ok) {
-        toast.success(t('tg_msg_sent'))
-        setMessageText('')
-        setMessagingUser(null)
-      } else {
-        toast.error(data.error || t('tg_msg_error'))
-      }
-    } catch (e) {
-      toast.error(t('server_error'))
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  // FETCH RESOURCES (MONITORING)
+  // FETCH RESOURCES (FULL CONTROL)
   const handleMonitorUser = async (user: UserItem) => {
     setMonitoringUser(user)
-    setUserResources({ bots: [], groups: [] }) // Reset previous
+    setActiveTab('overview')
+    setUserResources({ bots: [], groups: [] })
+    setUserSettings([])
     setResLoading(true)
     try {
       const res = await fetch(`/api/users/${user.id}/resources`)
       if (res.ok) {
         const data = await res.json()
-        setUserResources(data)
+        setUserResources({ bots: data.bots, groups: data.groups })
+        setUserSettings(data.settings)
+        if (data.user) setMonitoringUser({ ...user, ...data.user })
       } else {
         toast.error(t('load_error'))
       }
@@ -296,16 +391,12 @@ export default function UsersPage() {
                   <td>
                     {user.telegramId ? (
                       <span 
-                        onClick={() => setMessagingUser(user)}
                         style={{ 
                           fontSize: '13px', 
                           color: 'var(--primary-400)', 
-                          cursor: 'pointer', 
                           display: 'inline-flex', 
                           alignItems: 'center', 
-                          gap: '4px',
-                          textDecoration: 'underline',
-                          textUnderlineOffset: '2px'
+                          gap: '4px'
                         }}
                       >
                         <MessageSquare size={14} />
@@ -331,7 +422,7 @@ export default function UsersPage() {
                       )}
                       
                       <button
-                        className="btn btn-icon btn-sm" onClick={() => setEditingUser(user)}
+                        className="btn btn-icon btn-sm" onClick={() => handleMonitorUser(user)}
                         style={{ width: '32px', height: '32px', color: 'var(--primary-400)', background: 'rgba(139, 92, 246, 0.1)', borderRadius: 'var(--radius-sm)' }} title={t('edit')}
                       ><Edit2 size={14} /></button>
                       
@@ -342,7 +433,7 @@ export default function UsersPage() {
                       
                       {isSuperAdmin && (
                         <button
-                          className="btn btn-icon btn-sm" onClick={() => deleteUser(user)}
+                          className="btn btn-icon btn-sm" onClick={() => setUserToDelete(user)}
                           style={{ width: '32px', height: '32px', color: 'var(--accent-rose)', background: 'rgba(244, 63, 94, 0.1)', borderRadius: 'var(--radius-sm)' }} title={t('delete')}
                         ><Trash2 size={14} /></button>
                       )}
@@ -362,158 +453,246 @@ export default function UsersPage() {
         </div>
       </motion.div>
 
-      {/* Edit User Modal */}
-      <AnimatePresence>
-        {editingUser && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" onClick={() => setEditingUser(null)}>
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="modal" onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h3 className="modal-title" style={{ margin: 0 }}>{t('edit_user')}</h3>
-                <button className="btn btn-icon btn-ghost" onClick={() => setEditingUser(null)}><X size={20} /></button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="input-group">
-                  <label>{t('name_label')}</label>
-                  <input type="text" className="input" value={editingUser.name} onChange={(e) => setEditingUser({...editingUser, name: e.target.value})} disabled={isSubmitting} />
-                </div>
-                <div className="input-group">
-                  <label>{t('phone_label')}</label>
-                  <input type="text" className="input" value={editingUser.phone || ''} onChange={(e) => setEditingUser({...editingUser, phone: e.target.value})} placeholder="+998901234567" disabled={isSubmitting} />
-                </div>
-                <div className="input-group">
-                  <label>{t('tg_username_or_id')}</label>
-                  <input type="text" className="input" value={editingUser.telegramId || ''} onChange={(e) => setEditingUser({...editingUser, telegramId: e.target.value})} placeholder={t('tg_username_placeholder')} disabled={isSubmitting} />
-                  <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{t('tg_username_hint')}</span>
-                </div>
-                <div className="input-group">
-                  <label>{t('role')}</label>
-                  <select className="input" value={editingUser.role} onChange={(e) => setEditingUser({...editingUser, role: e.target.value})} disabled={isSubmitting}>
-                    <option value="SUPER_ADMIN">{t('role_super_admin')}</option>
-                    <option value="ADMIN">{t('role_admin')}</option>
-                    <option value="MANAGER">{t('role_manager')}</option>
-                    <option value="VIEWER">{t('role_viewer')}</option>
-                  </select>
-                </div>
-                <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleEditSave} disabled={isSubmitting}>
-                  {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} {t('save')}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Send Message Modal */}
-      <AnimatePresence>
-        {messagingUser && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" onClick={() => setMessagingUser(null)}>
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="modal" onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h3 className="modal-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <MessageSquare size={20} color="var(--primary-400)" />
-                  {t('send_message')}
-                </h3>
-                <button className="btn btn-icon btn-ghost" onClick={() => setMessagingUser(null)}><X size={20} /></button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-                  {t('bot_send_msg_to')} <span style={{ fontWeight: '600', color: 'white' }}>{messagingUser.name} ({messagingUser.telegramId})</span>
-                </div>
-                <div className="input-group">
-                  <label>{t('message_text')}</label>
-                  <textarea 
-                    className="input textarea" 
-                    placeholder={t('hello_placeholder')}
-                    value={messageText} 
-                    onChange={(e) => setMessageText(e.target.value)} 
-                    disabled={isSubmitting} 
-                    style={{ minHeight: '120px' }}
-                  />
-                </div>
-                <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleSendMessage} disabled={isSubmitting || !messageText.trim()}>
-                  {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <MessageSquare size={18} />} {t('send')}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Monitoring Modal */}
+      {/* Full User Control Panel (Monitoring + Editing) */}
       <AnimatePresence>
         {monitoringUser && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" onClick={() => setMonitoringUser(null)}>
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="modal" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" onClick={() => !isSubmitting && setMonitoringUser(null)}>
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} 
+              className="modal" style={{ maxWidth: '800px', width: '95%' }} onClick={(e) => e.stopPropagation()}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h3 className="modal-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Eye size={20} color="var(--primary-400)" />
-                  {t('monitoring_title')} {monitoringUser.name}
-                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-sm)', background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                    <Eye size={22} />
+                  </div>
+                  <div>
+                    <h3 className="modal-title" style={{ margin: 0 }}>{monitoringUser.name}</h3>
+                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0 }}>{monitoringUser.email}</p>
+                  </div>
+                </div>
                 <button className="btn btn-icon btn-ghost" onClick={() => setMonitoringUser(null)}><X size={20} /></button>
               </div>
-              
-              {resLoading ? (
-                 <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><Loader2 className="animate-spin" size={24} /></div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  
-                  {/* Bots List */}
-                  <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                       <Bot size={16} color="var(--primary-400)" />
-                       {t('connected_bots')} ({userResources.bots.length})
-                    </h4>
-                    {userResources.bots.length === 0 ? (
-                       <div style={{ fontSize: '13px', color: 'var(--text-tertiary)', padding: '10px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>{t('no_bots_connected')}</div>
-                    ) : (
-                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                         {userResources.bots.map((b: any) => (
-                           <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
-                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                               <span style={{ fontWeight: '600', fontSize: '14px' }}>{b.name}</span>
-                               <span style={{ fontSize: '12px', color: 'var(--primary-400)' }}>@{b.username}</span>
-                             </div>
-                             <span className={`badge ${b.isActive ? 'badge-success' : 'badge-secondary'}`}>{b.isActive ? t('active') : t('inactive')}</span>
-                           </div>
-                         ))}
-                       </div>
-                    )}
-                  </div>
 
-                  {/* Groups List */}
-                  <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                       <Hash size={16} color="var(--primary-400)" />
-                       {t('connected_groups')} ({userResources.groups.length})
-                    </h4>
-                    {userResources.groups.length === 0 ? (
-                       <div style={{ fontSize: '13px', color: 'var(--text-tertiary)', padding: '10px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>{t('no_groups_connected')}</div>
-                    ) : (
-                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                         {userResources.groups.map((g: any) => (
-                           <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
-                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                               <span style={{ fontWeight: '600', fontSize: '14px' }}>{g.title}</span>
-                               <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>ID: {g.chatId}</span>
-                             </div>
-                             <span className="badge badge-info">{g.type}</span>
-                           </div>
-                         ))}
-                       </div>
-                    )}
-                  </div>
+              {/* Tabs */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--divider)', paddingBottom: '2px' }}>
+                {[
+                  { id: 'overview', label: t('overview'), icon: Users },
+                  { id: 'bots', label: t('bots'), icon: Bot },
+                  { id: 'groups', label: t('groups'), icon: Hash },
+                  { id: 'settings', label: t('settings'), icon: Settings },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontSize: '14px', fontWeight: '600',
+                      color: activeTab === tab.id ? 'var(--primary-400)' : 'var(--text-tertiary)',
+                      borderBottom: activeTab === tab.id ? '2px solid var(--primary-400)' : '2px solid transparent',
+                      background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                  >
+                    <tab.icon size={16} />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
 
-                </div>
-              )}
+              <div style={{ minHeight: '400px', maxHeight: '65vh', overflowY: 'auto', padding: '4px' }}>
+                {resLoading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', gap: '12px' }}>
+                    <Loader2 className="animate-spin" size={32} color="var(--primary-400)" />
+                    <p style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}>{t('loading_resources')}</p>
+                  </div>
+                ) : (
+                  <motion.div key={activeTab} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}>
+                    {activeTab === 'overview' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                          <div className="input-group">
+                            <label>{t('name_label')}</label>
+                            <input type="text" className="input" value={monitoringUser.name} onChange={(e) => setMonitoringUser({ ...monitoringUser, name: e.target.value })} />
+                          </div>
+                          <div className="input-group">
+                            <label>{t('phone_label')}</label>
+                            <input type="text" className="input" value={monitoringUser.phone || ''} onChange={(e) => setMonitoringUser({ ...monitoringUser, phone: e.target.value })} />
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                          <div className="input-group">
+                            <label>{t('role')}</label>
+                            <select className="input" value={monitoringUser.role} onChange={(e) => setMonitoringUser({ ...monitoringUser, role: e.target.value })}>
+                              <option value="SUPER_ADMIN">Super Admin</option>
+                              <option value="ADMIN">Admin</option>
+                              <option value="MANAGER">Manager</option>
+                              <option value="VIEWER">Viewer</option>
+                            </select>
+                          </div>
+                          <div className="input-group">
+                            <label>Telegram Username / ID</label>
+                            <input type="text" className="input" value={monitoringUser.telegramId || ''} onChange={(e) => setMonitoringUser({ ...monitoringUser, telegramId: e.target.value })} />
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                          <div className="input-group">
+                            <label>{t('language')}</label>
+                            <select className="input" value={monitoringUser.language} onChange={(e) => setMonitoringUser({ ...monitoringUser, language: e.target.value })}>
+                              <option value="uz">O'zbekcha</option>
+                              <option value="ru">Русский</option>
+                              <option value="en">English</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="card" style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <Shield size={20} color={monitoringUser.twoFactorEnabled ? 'var(--accent-green)' : 'var(--text-tertiary)'} />
+                            <div>
+                              <div style={{ fontWeight: '600' }}>Two-Factor Authentication</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{monitoringUser.twoFactorEnabled ? 'Enabled' : 'Disabled'}</div>
+                            </div>
+                          </div>
+                        </div>
+                        <button className="btn btn-primary" onClick={() => handleSaveProfile(monitoringUser)} disabled={isSubmitting}>
+                          {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} {t('save_profile')}
+                        </button>
+                      </div>
+                    )}
+
+                    {activeTab === 'bots' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {userResources.bots.length === 0 ? (
+                          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' }}>{t('no_bots_found')}</div>
+                        ) : (
+                          userResources.bots.map((bot) => (
+                            <div key={bot.id} className="card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(124, 58, 237, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Bot size={20} color="var(--primary-400)" />
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: '600' }}>{bot.name}</div>
+                                  <div style={{ fontSize: '12px', color: 'var(--primary-400)' }}>@{bot.username}</div>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button className="btn btn-icon btn-sm" onClick={() => setEditingBot(bot)} title={t('edit')}><Edit2 size={14} /></button>
+                                <button className="btn btn-icon btn-sm" onClick={() => handleUpdateBot({ ...bot, isActive: !bot.isActive })} title={bot.isActive ? t('suspend') : t('activate')}>
+                                  <RefreshCw size={14} className={isSubmitting ? 'animate-spin' : ''} color={bot.isActive ? 'var(--accent-green)' : 'var(--text-tertiary)'} />
+                                </button>
+                                <button className="btn btn-icon btn-sm" onClick={() => handleDeleteBot(bot.id)} style={{ color: 'var(--accent-rose)' }} title={t('delete')}><Trash2 size={14} /></button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+
+                    {activeTab === 'groups' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {userResources.groups.length === 0 ? (
+                          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' }}>{t('no_groups_found')}</div>
+                        ) : (
+                          userResources.groups.map((group) => (
+                            <div key={group.id} className="card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-sm)', background: 'rgba(56, 189, 248, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Hash size={20} color="var(--primary-300)" />
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: '600' }}>{group.title}</div>
+                                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>ID: {group.chatId}</div>
+                                </div>
+                              </div>
+                              <button className="btn btn-icon btn-sm" onClick={() => handleDeleteGroup(group.id)} style={{ color: 'var(--accent-rose)' }} title={t('delete')}><Trash2 size={14} /></button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+
+                    {activeTab === 'settings' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input id="new-setting-key" type="text" className="input" placeholder="Key" style={{ flex: 1 }} />
+                          <input id="new-setting-val" type="text" className="input" placeholder="Value" style={{ flex: 1 }} />
+                          <button 
+                            className="btn btn-primary" 
+                            style={{ padding: '0 16px' }}
+                            onClick={() => {
+                              const k = (document.getElementById('new-setting-key') as HTMLInputElement).value;
+                              const v = (document.getElementById('new-setting-val') as HTMLInputElement).value;
+                              if (k && v) handleSaveSetting(k, v);
+                            }}
+                          >
+                            <Plus size={18} />
+                          </button>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {userSettings.map((s) => (
+                            <div key={s.id} className="card" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <Settings size={14} color="var(--primary-300)" />
+                                <span style={{ fontWeight: '600', fontSize: '14px', minWidth: '120px' }}>{s.key}</span>
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{s.value}</span>
+                              </div>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button className="btn btn-icon btn-xs" onClick={() => {
+                                   const val = prompt(`Change value for ${s.key}:`, s.value);
+                                   if (val !== null) handleSaveSetting(s.key, val);
+                                }}><Edit2 size={12} /></button>
+                                <button className="btn btn-icon btn-xs" style={{ color: 'var(--accent-rose)' }} onClick={() => handleDeleteSetting(s.key)}><Trash2 size={12} /></button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-      
-      {/* Custom Delete Confirmation Modal */}
+
+      {/* Bot Edit Sub-Modal */}
+      <AnimatePresence>
+        {editingBot && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" style={{ zIndex: 1001 }} onClick={() => setEditingBot(null)}>
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="modal" style={{ maxWidth: '450px' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <h3 className="modal-title" style={{ margin: 0 }}>{t('edit_bot')}</h3>
+                <button className="btn btn-icon btn-ghost" onClick={() => setEditingBot(null)}><X size={20} /></button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="input-group">
+                  <label>{t('bot_name')}</label>
+                  <input type="text" className="input" value={editingBot.name} onChange={(e) => setEditingBot({ ...editingBot, name: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label>{t('bot_username')}</label>
+                  <input type="text" className="input" value={editingBot.username} onChange={(e) => setEditingBot({ ...editingBot, username: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label>{t('bot_token')}</label>
+                  <div style={{ position: 'relative' }}>
+                    <Key size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+                    <input type="text" className="input" style={{ paddingLeft: '36px' }} value={editingBot.token} onChange={(e) => setEditingBot({ ...editingBot, token: e.target.value })} />
+                  </div>
+                </div>
+                <button className="btn btn-primary" onClick={() => handleUpdateBot(editingBot)} disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} {t('save')}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete User Confirmation (External) */}
       <AnimatePresence>
         {userToDelete && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" onClick={() => !isDeleting && setUserToDelete(null)}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" style={{ zIndex: 1002 }} onClick={() => !isDeleting && setUserToDelete(null)}>
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="modal" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
               <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                 <UserX size={32} color="var(--error)" />

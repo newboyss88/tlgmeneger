@@ -53,28 +53,27 @@ export async function POST(req: Request) {
       }
     })
 
-    // Email jo'natish
+    // Email jo\'natish
     const appName = process.env.NEXT_PUBLIC_APP_NAME || 'TelegramManager'
-    
+    const lang = (user.language as 'uz' | 'ru' | 'en') || 'uz'
+    const t = (require('@/lib/i18n/translations').default)[lang]
+
     // 1. Email yuborish
     const mailResult = await sendMail({
       to: user.email,
-      subject: `Tasdiqlash kodi - ${appName}`,
-      text: `Sizning tasdiqlash kodingiz: ${code}`,
+      subject: `${t.email_2fa_subject} - ${appName}`,
+      text: `${t.email_2fa_body} ${code}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
-          <h2 style="color: #7c3aed; margin-bottom: 16px;">Tizimga kirishni tasdiqlang</h2>
+          <h2 style="color: #7c3aed; margin-bottom: 16px;">${t.email_2fa_title}</h2>
           <p style="color: #475569; font-size: 16px; line-height: 24px;">
-            Sizning hisobingizga kirish uchun ikki bosqichli tasdiqlash kodi:
+            ${t.email_2fa_body}
           </p>
           <div style="background: #f8fafc; padding: 24px; border-radius: 8px; text-align: center; margin: 24px 0;">
             <span style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #1e293b;">${code}</span>
           </div>
           <p style="color: #64748b; font-size: 14px;">
-            Ushbu kod 10 daqiqa davomida amal qiladi. Agar buni siz so'ramagan bo'lsangiz, iltimos parolingizni o'zgartiring.
-          </p>
-          <p style="color: #94a3b8; font-size: 12px; margin-top: 16px;">
-            Siz ushbu kodni Telegram botimiz orqali ham olishingiz mumkin (agar ulangan bo'lsa).
+            ${t.email_2fa_footer}
           </p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
           <p style="color: #94a3b8; font-size: 12px; text-align: center;">
@@ -130,7 +129,7 @@ export async function POST(req: Request) {
     }
 
     if (telegramId) {
-       const tgMsg = `🔐 *${appName}* 2FA Tasdiqlash Kodi\n\nSizning kirish kodingiz: \`${code}\`\n\n_Ushbu kod 10 daqiqa yaroqli._`
+       const tgMsg = t.tg_2fa_message.replace('${code}', code)
        const res = await sendTelegramMessage(telegramId, tgMsg, 'Markdown', botToken)
        tgResult = { success: res.success, error: res.error }
     }

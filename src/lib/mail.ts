@@ -30,6 +30,9 @@ export async function sendMail({ to, subject, text, html }: { to: string, subjec
       user,
       pass,
     },
+    tls: {
+      rejectUnauthorized: false
+    }
   })
 
   try {

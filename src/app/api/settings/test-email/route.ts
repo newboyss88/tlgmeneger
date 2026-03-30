@@ -24,6 +24,9 @@ export async function POST(request: Request) {
       auth: {
          user: smtp.user,
          pass: smtp.pass
+      },
+      tls: {
+        rejectUnauthorized: false
       }
     })
 
@@ -38,6 +41,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Test Email error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: error.message || 'SMTP connect error' }, { status: 500 })
   }
 }

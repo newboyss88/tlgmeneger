@@ -292,7 +292,10 @@ export default function SettingsPage() {
                         });
                         toast.dismiss();
                         if(res.ok) toast.success(t('test_email_sent'));
-                        else toast.error(t('error'));
+                        else {
+                          const data = await res.json();
+                          toast.error(data.error || t('error'));
+                        }
                       } catch (err) {
                         toast.dismiss();
                         toast.error(t('network_error'));

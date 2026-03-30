@@ -84,62 +84,51 @@ export async function POST(req: Request) {
       `
     })
 
-    // 1.5 Aktiv bot ma'lumotlarini olish (SUI/UX uchun)
-    const activeBot = await prisma.bot.findFirst({
-      where: { isActive: true },
-      orderBy: { createdAt: 'desc' }
-    });
-    const botUsername = activeBot?.username || null;
-
-    // 2. Telegram yuborish (agar telegramId bo'lsa)
-    let tgResult: { success: boolean; error?: any; code?: number } = { success: false, error: 'Telegram not linked' }
+    // 2. Telegram yuborish
+    let tgResult: { success: boolean; error?: any } = { success: false, error: 'Telegram not linked' }
     let telegramId = user.telegramId;
+    let botToken: string | undefined = undefined;
 
-    // Self-healing: Agar telegramId bo'lmasa, telegramUsername orqali qidirib ko'rish
-    if (!telegramId) {
-      const usernameSetting = await prisma.setting.findFirst({
-        where: { userId: user.id, key: 'telegramUsername' }
-      });
+    // Telegram foydalanuvchisini qidirish (username orqali bo'lsa ham)
+    const usernameSetting = await prisma.setting.findFirst({
+      where: { userId: user.id, key: 'telegramUsername' }
+    });
+    
+    let searchUsername = usernameSetting?.value?.trim().toLowerCase();
+    if (searchUsername?.startsWith('@')) searchUsername = searchUsername.substring(1);
+
+    // TelegramUser jadvalidan aynan qaysi botga bog'langanini aniqlash
+    const tgUser = await prisma.telegramUser.findFirst({
+      where: { 
+        OR: [
+          { telegramId: telegramId || 'never_match_if_null' },
+          { username: searchUsername || 'never_match_if_null' }
+        ]
+      },
+      include: { bot: true },
+      orderBy: { updatedAt: 'desc' }
+    });
+
+    if (tgUser) {
+      telegramId = tgUser.telegramId;
+      botToken = tgUser.bot?.token;
       
-      if (usernameSetting?.value) {
-        let username = usernameSetting.value.trim().toLowerCase();
-        if (username.startsWith('@')) username = username.substring(1);
-        
-        const tgUser = await prisma.telegramUser.findFirst({
-          where: { username: { equals: username } },
-          orderBy: { createdAt: 'desc' }
+      // Bazadagi telegramId ni yangilab qo'yamiz
+      if (user.telegramId !== telegramId) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { telegramId }
         });
-        
-        if (tgUser) {
-          telegramId = tgUser.telegramId;
-          // Bazadagi foydalanuvchini ham yangilab qo'yamiz (keyingi safar tezroq ishlashi uchun)
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { telegramId: telegramId }
-          });
-        }
       }
     }
 
     if (telegramId) {
        const tgMsg = `🔐 *${appName}* 2FA Tasdiqlash Kodi\n\nSizning kirish kodingiz: \`${code}\`\n\n_Ushbu kod 10 daqiqa yaroqli._`
-       const res = await sendTelegramMessage(telegramId, tgMsg, 'Markdown')
-       
-       // Telegram API xatolarini tahlil qilish
-       let errorType = res.error;
-       if (res.error?.includes('chat not found')) {
-         errorType = 'chat_not_found';
-       }
-       
-       tgResult = { 
-         success: res.success, 
-         error: errorType,
-         code: res.success ? 200 : 400
-       }
+       const res = await sendTelegramMessage(telegramId, tgMsg, 'Markdown', botToken)
+       tgResult = { success: res.success, error: res.error }
     }
 
     // Agar ikkalasi ham xato bo'lsa, xabar berish. 
-    // Lekin bittasi o'tsa ham login sahifasiga o'tkazaveramiz (foydalanuvchi qaysidir yo'l bilan olishi uchun)
     if (!mailResult.success && !tgResult.success) {
       const errorMsg = `Kod yuborib bo'lmadi. Email: ${mailResult.error || 'Nomalum'}, Telegram: ${tgResult.error || 'Nomalum'}`
       throw new Error(errorMsg)
@@ -148,11 +137,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ 
       success: true, 
       twoFactorEnabled: true,
-      botUsername,
       channels: {
         email: mailResult.success,
-        telegram: tgResult.success,
-        tgError: tgResult.error
+        telegram: tgResult.success
       }
     })
   } catch (error: any) {

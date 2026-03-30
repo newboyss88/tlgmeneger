@@ -3,8 +3,8 @@ import prisma from './prisma'
 /**
  * Simple Telegram Bot API wrapper for sending system notifications
  */
-export async function sendTelegramMessage(chatId: string | number, text: string, parseMode: 'HTML' | 'Markdown' = 'HTML') {
-  let token = process.env.TELEGRAM_BOT_TOKEN;
+export async function sendTelegramMessage(chatId: string | number, text: string, parseMode: 'HTML' | 'Markdown' = 'HTML', customToken?: string) {
+  let token = customToken || process.env.TELEGRAM_BOT_TOKEN;
   
   // If no env token, try to get from Super Admin's first active bot
   if (!token || token === 'YOUR_BOT_TOKEN_HERE') {

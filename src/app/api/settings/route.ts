@@ -19,11 +19,12 @@ export async function GET() {
     // User modelidan qo'shimcha ma'lumotlarni qo'shish
     const user = await prisma.user.findUnique({
       where: { id: (session.user as any).id },
-      select: { telegramId: true }
+      select: { telegramId: true, twoFactorEnabled: true }
     })
 
     if (user) {
       settingsObj.telegramId = user.telegramId
+      settingsObj.twoFactorAuth = user.twoFactorEnabled
     }
 
     return NextResponse.json(settingsObj)

@@ -89,20 +89,27 @@ export async function POST(req: Request) {
     let telegramId = user.telegramId;
     let botToken: string | undefined = undefined;
 
-    // Telegram foydalanuvchisini qidirish (username orqali bo'lsa ham)
+    // Telegram foydalanuvchisini qidirish (username va ID'larni yig'ish)
+    const clues = new Set<string>();
+    if (telegramId) clues.add(telegramId.toLowerCase().replace(/^@/, ''));
+    
     const usernameSetting = await prisma.setting.findFirst({
       where: { userId: user.id, key: 'telegramUsername' }
     });
-    
-    let searchUsername = usernameSetting?.value?.trim().toLowerCase();
-    if (searchUsername?.startsWith('@')) searchUsername = searchUsername.substring(1);
+    if (usernameSetting?.value) {
+      let u = usernameSetting.value.trim().toLowerCase();
+      if (u.startsWith('@')) u = u.substring(1);
+      clues.add(u);
+    }
 
-    // TelegramUser jadvalidan aynan qaysi botga bog'langanini aniqlash
+    const cluesList = Array.from(clues);
+
+    // TelegramUser jadvalidan har qanday belgi (clue) bo'yicha qidirish
     const tgUser = await prisma.telegramUser.findFirst({
       where: { 
         OR: [
-          { telegramId: telegramId || 'never_match_if_null' },
-          { username: searchUsername || 'never_match_if_null' }
+          { telegramId: { in: cluesList } },
+          { username: { in: cluesList } }
         ]
       },
       include: { bot: true },

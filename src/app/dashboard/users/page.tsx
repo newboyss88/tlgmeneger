@@ -578,9 +578,9 @@ export default function UsersPage() {
                               <Shield size={20} color={monitoringUser.twoFactorEnabled ? 'var(--accent-green)' : 'var(--text-tertiary)'} />
                             </div>
                             <div>
-                              <div style={{ fontWeight: '600', fontSize: '14px' }}>Two-Factor Authentication (2FA)</div>
+                              <div style={{ fontWeight: '600', fontSize: '14px' }}>{t('two_factor_auth')}</div>
                               <div style={{ fontSize: '12px', color: monitoringUser.twoFactorEnabled ? 'var(--accent-green)' : 'var(--text-tertiary)' }}>
-                                {monitoringUser.twoFactorEnabled ? t('active') : t('banned')}
+                                {monitoringUser.twoFactorEnabled ? t('enabled') : t('disabled')}
                               </div>
                             </div>
                           </div>
@@ -595,7 +595,7 @@ export default function UsersPage() {
                                 border: 'none', transition: 'all 0.2s'
                               }}
                             >
-                              {monitoringUser.twoFactorEnabled ? t('block').replace('Block', 'Disable') : t('unblock').replace('Unblock', 'Enable')}
+                              {monitoringUser.twoFactorEnabled ? t('disable') : t('enable')}
                             </button>
                           )}
                         </div>

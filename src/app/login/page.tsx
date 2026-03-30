@@ -8,10 +8,12 @@ import { motion } from 'framer-motion'
 import { Bot, Mail, Lock, ArrowRight, Eye, EyeOff, Loader2, Phone } from 'lucide-react'
 
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { useSettings } from '@/lib/SettingsContext'
 
 export default function LoginPage() {
   const router = useRouter()
   const { t } = useLanguage()
+  const { settings } = useSettings()
   const [loginType, setLoginType] = useState<'email' | 'phone'>('email')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -124,7 +126,7 @@ export default function LoginPage() {
               <Bot size={26} color="white" />
             </div>
           </Link>
-          <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '8px' }}>{t('hero_title').split(' ')[0]}!</h1>
+          <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '8px' }}>{settings.appName}!</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>{t('login')}</p>
         </div>
 

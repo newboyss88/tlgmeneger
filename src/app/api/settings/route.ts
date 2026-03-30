@@ -6,10 +6,19 @@ import prisma from '@/lib/prisma'
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    
+    // 1. Super Adminni topish
+    const superAdmin = await prisma.user.findFirst({
+      where: { role: 'SUPER_ADMIN' },
+      select: { id: true }
+    })
+
+    const userId = session ? (session.user as any).id : superAdmin?.id
+
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const settings = await prisma.setting.findMany({
-      where: { userId: (session.user as any).id },
+      where: { userId },
     })
 
     // Convert to key-value object
@@ -18,7 +27,7 @@ export async function GET() {
 
     // User modelidan qo'shimcha ma'lumotlarni qo'shish
     const user = await prisma.user.findUnique({
-      where: { id: (session.user as any).id },
+      where: { id: userId },
       select: { telegramId: true, twoFactorEnabled: true }
     })
 

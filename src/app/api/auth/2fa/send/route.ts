@@ -54,7 +54,13 @@ export async function POST(req: Request) {
     })
 
     // Email jo\'natish
-    const appName = process.env.NEXT_PUBLIC_APP_NAME || 'TelegramManager'
+    // Platforma nomini bazadan olish
+    const superAdmin = await prisma.user.findFirst({ where: { role: 'SUPER_ADMIN' } })
+    const appNameSetting = await prisma.setting.findUnique({
+      where: { userId_key: { userId: superAdmin?.id || '', key: 'appName' } }
+    })
+    const appName = appNameSetting?.value || process.env.NEXT_PUBLIC_APP_NAME || 'TelegramManager'
+    
     const lang = (user.language as 'uz' | 'ru' | 'en') || 'uz'
     const { translations } = require('@/lib/i18n/translations')
     const t = translations[lang]

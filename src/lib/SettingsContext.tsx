@@ -34,11 +34,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const loadSettings = useCallback(async () => {
-    if (status !== 'authenticated') {
-      setLoading(false)
-      return
-    }
-
     try {
       const res = await fetch('/api/settings')
       if (res.ok) {

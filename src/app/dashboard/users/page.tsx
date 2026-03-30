@@ -52,6 +52,7 @@ export default function UsersPage() {
   const [resLoading, setResLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'bots' | 'groups' | 'settings'>('overview')
   const [userSettings, setUserSettings] = useState<any[]>([])
+  const [isEditMode, setIsEditMode] = useState(false)
   
   // Edit Sub-resources
   const [editingBot, setEditingBot] = useState<any | null>(null)
@@ -278,8 +279,9 @@ export default function UsersPage() {
   }
 
   // FETCH RESOURCES (FULL CONTROL)
-  const handleMonitorUser = async (user: UserItem) => {
+  const handleMonitorUser = async (user: UserItem, editMode: boolean = false) => {
     setMonitoringUser(user)
+    setIsEditMode(editMode)
     setActiveTab('overview')
     setUserResources({ bots: [], groups: [] })
     setUserSettings([])
@@ -416,13 +418,13 @@ export default function UsersPage() {
                     <div style={{ display: 'flex', gap: '4px' }}>
                       {isSuperAdmin && (
                         <button
-                          className="btn btn-icon btn-sm" onClick={() => handleMonitorUser(user)}
+                          className="btn btn-icon btn-sm" onClick={() => handleMonitorUser(user, false)}
                           style={{ width: '32px', height: '32px', color: 'var(--primary-500)', background: 'rgba(56, 189, 248, 0.1)', borderRadius: 'var(--radius-sm)' }} title={t('monitoring')}
                         ><Eye size={14} /></button>
                       )}
                       
                       <button
-                        className="btn btn-icon btn-sm" onClick={() => handleMonitorUser(user)}
+                        className="btn btn-icon btn-sm" onClick={() => handleMonitorUser(user, true)}
                         style={{ width: '32px', height: '32px', color: 'var(--primary-400)', background: 'rgba(139, 92, 246, 0.1)', borderRadius: 'var(--radius-sm)' }} title={t('edit')}
                       ><Edit2 size={14} /></button>
                       
@@ -462,12 +464,14 @@ export default function UsersPage() {
               className="modal" style={{ maxWidth: '800px', width: '95%' }} onClick={(e) => e.stopPropagation()}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-sm)', background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                    <Eye size={22} />
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-sm)', background: isEditMode ? 'var(--gradient-primary)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isEditMode ? 'white' : 'var(--text-tertiary)' }}>
+                    {isEditMode ? <Edit2 size={20} /> : <Eye size={20} />}
                   </div>
                   <div>
-                    <h3 className="modal-title" style={{ margin: 0 }}>{monitoringUser.name}</h3>
+                    <h3 className="modal-title" style={{ margin: 0 }}>
+                      {isEditMode ? `${t('edit')}: ${monitoringUser.name}` : `${t('monitoring')}: ${monitoringUser.name}`}
+                    </h3>
                     <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0 }}>{monitoringUser.email}</p>
                   </div>
                 </div>
@@ -511,50 +515,96 @@ export default function UsersPage() {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                           <div className="input-group">
                             <label>{t('name_label')}</label>
-                            <input type="text" className="input" value={monitoringUser.name} onChange={(e) => setMonitoringUser({ ...monitoringUser, name: e.target.value })} />
+                            {isEditMode ? (
+                              <input type="text" className="input" value={monitoringUser.name} onChange={(e) => setMonitoringUser({ ...monitoringUser, name: e.target.value })} />
+                            ) : (
+                              <div className="card" style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', fontSize: '14px' }}>{monitoringUser.name}</div>
+                            )}
                           </div>
                           <div className="input-group">
                             <label>{t('phone_label')}</label>
-                            <input type="text" className="input" value={monitoringUser.phone || ''} onChange={(e) => setMonitoringUser({ ...monitoringUser, phone: e.target.value })} />
+                            {isEditMode ? (
+                              <input type="text" className="input" value={monitoringUser.phone || ''} onChange={(e) => setMonitoringUser({ ...monitoringUser, phone: e.target.value })} />
+                            ) : (
+                              <div className="card" style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', fontSize: '14px' }}>{monitoringUser.phone || t('not_provided')}</div>
+                            )}
                           </div>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                           <div className="input-group">
                             <label>{t('role')}</label>
-                            <select className="input" value={monitoringUser.role} onChange={(e) => setMonitoringUser({ ...monitoringUser, role: e.target.value })}>
-                              <option value="SUPER_ADMIN">Super Admin</option>
-                              <option value="ADMIN">Admin</option>
-                              <option value="MANAGER">Manager</option>
-                              <option value="VIEWER">Viewer</option>
-                            </select>
+                            {isEditMode ? (
+                              <select className="input" value={monitoringUser.role} onChange={(e) => setMonitoringUser({ ...monitoringUser, role: e.target.value })}>
+                                <option value="SUPER_ADMIN">Super Admin</option>
+                                <option value="ADMIN">Admin</option>
+                                <option value="MANAGER">Manager</option>
+                                <option value="VIEWER">Viewer</option>
+                              </select>
+                            ) : (
+                              <div style={{ display: 'flex' }}><span className={`badge ${roleColors[monitoringUser.role]}`}>{roleLabels[monitoringUser.role]}</span></div>
+                            )}
                           </div>
                           <div className="input-group">
                             <label>Telegram Username / ID</label>
-                            <input type="text" className="input" value={monitoringUser.telegramId || ''} onChange={(e) => setMonitoringUser({ ...monitoringUser, telegramId: e.target.value })} />
+                            {isEditMode ? (
+                              <input type="text" className="input" value={monitoringUser.telegramId || ''} onChange={(e) => setMonitoringUser({ ...monitoringUser, telegramId: e.target.value })} />
+                            ) : (
+                              <div className="card" style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', fontSize: '14px', color: 'var(--primary-400)' }}>
+                                {monitoringUser.telegramId ? `@${monitoringUser.telegramId.replace('@', '')}` : t('not_available')}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                           <div className="input-group">
                             <label>{t('language')}</label>
-                            <select className="input" value={monitoringUser.language} onChange={(e) => setMonitoringUser({ ...monitoringUser, language: e.target.value })}>
-                              <option value="uz">O'zbekcha</option>
-                              <option value="ru">Русский</option>
-                              <option value="en">English</option>
-                            </select>
+                            {isEditMode ? (
+                              <select className="input" value={monitoringUser.language} onChange={(e) => setMonitoringUser({ ...monitoringUser, language: e.target.value })}>
+                                <option value="uz">O'zbekcha</option>
+                                <option value="ru">Русский</option>
+                                <option value="en">English</option>
+                              </select>
+                            ) : (
+                              <div className="card" style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', fontSize: '14px' }}>
+                                {monitoringUser.language === 'uz' ? "O'zbekcha" : monitoringUser.language === 'ru' ? 'Русский' : 'English'}
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <div className="card" style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+
+                        <div className="card" style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: monitoringUser.twoFactorEnabled ? '1px solid var(--accent-green)33' : '1px solid transparent' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <Shield size={20} color={monitoringUser.twoFactorEnabled ? 'var(--accent-green)' : 'var(--text-tertiary)'} />
+                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: monitoringUser.twoFactorEnabled ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Shield size={20} color={monitoringUser.twoFactorEnabled ? 'var(--accent-green)' : 'var(--text-tertiary)'} />
+                            </div>
                             <div>
-                              <div style={{ fontWeight: '600' }}>Two-Factor Authentication</div>
-                              <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{monitoringUser.twoFactorEnabled ? 'Enabled' : 'Disabled'}</div>
+                              <div style={{ fontWeight: '600', fontSize: '14px' }}>Two-Factor Authentication (2FA)</div>
+                              <div style={{ fontSize: '12px', color: monitoringUser.twoFactorEnabled ? 'var(--accent-green)' : 'var(--text-tertiary)' }}>
+                                {monitoringUser.twoFactorEnabled ? t('active') : t('banned')}
+                              </div>
                             </div>
                           </div>
+                          
+                          {isEditMode && (
+                            <button 
+                              onClick={() => setMonitoringUser({ ...monitoringUser, twoFactorEnabled: !monitoringUser.twoFactorEnabled })}
+                              style={{ 
+                                padding: '6px 12px', fontSize: '12px', fontWeight: '600', borderRadius: '20px', cursor: 'pointer',
+                                background: monitoringUser.twoFactorEnabled ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                color: monitoringUser.twoFactorEnabled ? 'var(--accent-rose)' : 'var(--accent-green)',
+                                border: 'none', transition: 'all 0.2s'
+                              }}
+                            >
+                              {monitoringUser.twoFactorEnabled ? t('block').replace('Block', 'Disable') : t('unblock').replace('Unblock', 'Enable')}
+                            </button>
+                          )}
                         </div>
-                        <button className="btn btn-primary" onClick={() => handleSaveProfile(monitoringUser)} disabled={isSubmitting}>
-                          {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} {t('save_profile')}
-                        </button>
+
+                        {isEditMode && (
+                          <button className="btn btn-primary" onClick={() => handleSaveProfile(monitoringUser)} disabled={isSubmitting} style={{ marginTop: '10px' }}>
+                            {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} {t('save_profile')}
+                          </button>
+                        )}
                       </div>
                     )}
 
@@ -574,12 +624,16 @@ export default function UsersPage() {
                                   <div style={{ fontSize: '12px', color: 'var(--primary-400)' }}>@{bot.username}</div>
                                 </div>
                               </div>
-                              <div style={{ display: 'flex', gap: '8px' }}>
-                                <button className="btn btn-icon btn-sm" onClick={() => setEditingBot(bot)} title={t('edit')}><Edit2 size={14} /></button>
-                                <button className="btn btn-icon btn-sm" onClick={() => handleUpdateBot({ ...bot, isActive: !bot.isActive })} title={bot.isActive ? t('suspend') : t('activate')}>
-                                  <RefreshCw size={14} className={isSubmitting ? 'animate-spin' : ''} color={bot.isActive ? 'var(--accent-green)' : 'var(--text-tertiary)'} />
-                                </button>
-                                <button className="btn btn-icon btn-sm" onClick={() => handleDeleteBot(bot.id)} style={{ color: 'var(--accent-rose)' }} title={t('delete')}><Trash2 size={14} /></button>
+                               <div style={{ display: 'flex', gap: '8px' }}>
+                                {isEditMode && (
+                                  <>
+                                    <button className="btn btn-icon btn-sm" onClick={() => setEditingBot(bot)} title={t('edit')}><Edit2 size={14} /></button>
+                                    <button className="btn btn-icon btn-sm" onClick={() => handleUpdateBot({ ...bot, isActive: !bot.isActive })} title={bot.isActive ? t('suspend') : t('activate')}>
+                                      <RefreshCw size={14} className={isSubmitting ? 'animate-spin' : ''} color={bot.isActive ? 'var(--accent-green)' : 'var(--text-tertiary)'} />
+                                    </button>
+                                    <button className="btn btn-icon btn-sm" onClick={() => handleDeleteBot(bot.id)} style={{ color: 'var(--accent-rose)' }} title={t('delete')}><Trash2 size={14} /></button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           ))
@@ -603,7 +657,9 @@ export default function UsersPage() {
                                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>ID: {group.chatId}</div>
                                 </div>
                               </div>
-                              <button className="btn btn-icon btn-sm" onClick={() => handleDeleteGroup(group.id)} style={{ color: 'var(--accent-rose)' }} title={t('delete')}><Trash2 size={14} /></button>
+                               {isEditMode && (
+                                <button className="btn btn-icon btn-sm" onClick={() => handleDeleteGroup(group.id)} style={{ color: 'var(--accent-rose)' }} title={t('delete')}><Trash2 size={14} /></button>
+                              )}
                             </div>
                           ))
                         )}
@@ -612,21 +668,23 @@ export default function UsersPage() {
 
                     {activeTab === 'settings' && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <input id="new-setting-key" type="text" className="input" placeholder="Key" style={{ flex: 1 }} />
-                          <input id="new-setting-val" type="text" className="input" placeholder="Value" style={{ flex: 1 }} />
-                          <button 
-                            className="btn btn-primary" 
-                            style={{ padding: '0 16px' }}
-                            onClick={() => {
-                              const k = (document.getElementById('new-setting-key') as HTMLInputElement).value;
-                              const v = (document.getElementById('new-setting-val') as HTMLInputElement).value;
-                              if (k && v) handleSaveSetting(k, v);
-                            }}
-                          >
-                            <Plus size={18} />
-                          </button>
-                        </div>
+                        {isEditMode && (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <input id="new-setting-key" type="text" className="input" placeholder="Key" style={{ flex: 1 }} />
+                            <input id="new-setting-val" type="text" className="input" placeholder="Value" style={{ flex: 1 }} />
+                            <button 
+                              className="btn btn-primary" 
+                              style={{ padding: '0 16px' }}
+                              onClick={() => {
+                                const k = (document.getElementById('new-setting-key') as HTMLInputElement).value;
+                                const v = (document.getElementById('new-setting-val') as HTMLInputElement).value;
+                                if (k && v) handleSaveSetting(k, v);
+                              }}
+                            >
+                              <Plus size={18} />
+                            </button>
+                          </div>
+                        )}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {userSettings.map((s) => (
                             <div key={s.id} className="card" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)' }}>
@@ -635,12 +693,16 @@ export default function UsersPage() {
                                 <span style={{ fontWeight: '600', fontSize: '14px', minWidth: '120px' }}>{s.key}</span>
                                 <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{s.value}</span>
                               </div>
-                              <div style={{ display: 'flex', gap: '8px' }}>
-                                <button className="btn btn-icon btn-xs" onClick={() => {
-                                   const val = prompt(`Change value for ${s.key}:`, s.value);
-                                   if (val !== null) handleSaveSetting(s.key, val);
-                                }}><Edit2 size={12} /></button>
-                                <button className="btn btn-icon btn-xs" style={{ color: 'var(--accent-rose)' }} onClick={() => handleDeleteSetting(s.key)}><Trash2 size={12} /></button>
+                               <div style={{ display: 'flex', gap: '8px' }}>
+                                {isEditMode && (
+                                  <>
+                                    <button className="btn btn-icon btn-xs" onClick={() => {
+                                       const val = prompt(`Change value for ${s.key}:`, s.value);
+                                       if (val !== null) handleSaveSetting(s.key, val);
+                                    }}><Edit2 size={12} /></button>
+                                    <button className="btn btn-icon btn-xs" style={{ color: 'var(--accent-rose)' }} onClick={() => handleDeleteSetting(s.key)}><Trash2 size={12} /></button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           ))}

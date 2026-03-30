@@ -103,7 +103,8 @@ export async function POST(request: Request) {
         operation_success: '\u2705 Operatsiya muvaffaqiyatli:',
         who_to: 'Kimga',
         who_to_prompt: 'Iltimos, ushbu chiqim kimga yoki qayerga qilinayotganini yozib yuboring (shu xabarga javob qilib):',
-        code: 'Kod'
+        code: 'Kod',
+        units: { dona: 'dona', kg: 'kg', metr: 'm', litr: 'l' }
       },
       ru: {
         autoDeduct: '\u0410\u0432\u0442\u043e-\u0441\u043f\u0438\u0441\u0430\u043d\u0438\u0435', product: '\u0422\u043e\u0432\u0430\u0440', deduct: '\u0421\u043f\u0438\u0441\u0430\u043d\u0438\u0435', income: '\u041f\u0440\u0438\u0445\u043e\u0434', newBalance: '\u041d\u043e\u0432\u044b\u0439 \u043e\u0441\u0442\u0430\u0442\u043e\u043a',
@@ -120,7 +121,8 @@ export async function POST(request: Request) {
         operation_success: '\u2705 \u041e\u043f\u0435\u0440\u0430\u0446\u0438\u044f \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0430:',
         who_to: 'Кому / Куда',
         who_to_prompt: 'Пожалуйста, напишите, кому или куда производится это списание (добавьте как ответ на это сообщение):',
-        code: 'Код'
+        code: 'Код',
+        units: { dona: 'шт.', kg: 'кг', metr: 'м', litr: 'л' }
       },
       en: {
         autoDeduct: 'Auto-deduction', product: 'Product', deduct: 'Deducted', income: 'Added', newBalance: 'New balance',
@@ -137,7 +139,8 @@ export async function POST(request: Request) {
         operation_success: '\u2705 Operation completed:',
         who_to: 'To whom',
         who_to_prompt: 'Please write to whom or where this deduction is being made (reply to this message):',
-        code: 'Code'
+        code: 'Code',
+        units: { dona: 'pcs', kg: 'kg', metr: 'm', litr: 'l' }
       }
     };
     const t = dict[lng] || dict['uz'];
@@ -145,6 +148,9 @@ export async function POST(request: Request) {
     const allProducts = bot.warehouses.flatMap((w: any) =>
       w.products.map((p: any) => ({ ...p, warehouseName: w.name, warehouseId: w.id }))
     );
+    
+    // Helper to format unit
+    const fUnit = (unit: string) => (t as any).units?.[unit] || unit;
 
     // ==========================================
     // 1. CALLBACK QUERY
@@ -163,7 +169,7 @@ export async function POST(request: Request) {
         const wh = bot.warehouses.find((w: any) => w.id === wId);
         if (wh) {
             const buttons = wh.products.slice(0, 50).map((p: any) => [
-              { text: `\ud83d\udce6 ${p.name}${p.sku ? ` - ${p.sku}` : ''} (${p.quantity} ${p.unit})`, callback_data: `pr_${p.id}` }
+              { text: `\ud83d\udce6 ${p.name}${p.sku ? ` - ${p.sku}` : ''} (${p.quantity} ${fUnit(p.unit)})`, callback_data: `pr_${p.id}` }
             ]);
             buttons.push([{ text: t.back, callback_data: 'menu' }]);
             await sendTelegramMessage(botToken, chatId, `*${wh.name}*\n\n${t.select_product}`, 'Markdown', { inline_keyboard: buttons });
@@ -188,7 +194,7 @@ export async function POST(request: Request) {
               ],
               [{ text: t.back, callback_data: `wh_${pr.warehouseId}` }]
             ];
-            const msg = `\ud83d\udcf1 *${pr.name}*\n\ud83c\udfe2 ${pr.warehouseName}\n\ud83d\udce6 ${t.balance}: *${pr.quantity}* ${pr.unit}\n\n${t.select_quantity}`;
+            const msg = `\ud83d\udcf1 *${pr.name}*\n\ud83c\udfe2 ${pr.warehouseName}\n\ud83d\udce6 ${t.balance}: *${pr.quantity}* ${fUnit(pr.unit)}\n\n${t.select_quantity}`;
             await sendTelegramMessage(botToken, chatId, msg, 'Markdown', { inline_keyboard: buttons });
         }
         return NextResponse.json({ ok: true })
@@ -205,7 +211,7 @@ export async function POST(request: Request) {
             const actualQty = type === 'OUT' ? Math.min(pr.quantity, qty) : qty;
             
             if (type === 'OUT') {
-               const replyMsg = `\ud83d\udcc9 ${t.deduct}: *${actualQty}* ${pr.unit}\n\ud83d\udce6 ${t.product}: *${pr.name}*\n\n\ud83d\udc47 ${t.who_to_prompt}\n\n💬 ${t.code}: OUT-${actualQty}-${pr.id}`;
+               const replyMsg = `\ud83d\udcc9 ${t.deduct}: *${actualQty}* ${fUnit(pr.unit)}\n\ud83d\udce6 ${t.product}: *${pr.name}*\n\n\ud83d\udc47 ${t.who_to_prompt}\n\n💬 ${t.code}: OUT-${actualQty}-${pr.id}`;
                await sendTelegramMessage(botToken, chatId, replyMsg, 'Markdown', { force_reply: true });
                return NextResponse.json({ ok: true });
             }
@@ -228,7 +234,7 @@ export async function POST(request: Request) {
             });
 
             const status = newQuantity <= pr.minQuantity ? `\ud83d\udd34 ${t.statusLow}` : `\ud83d\udfe2 ${t.statusOk}`;
-            const msg = `${t.operation_success}\n\ud83d\udcf1 ${t.product}: *${pr.name}*\n\ud83d\udcc8 ${t.income}: *${actualQty}* ${pr.unit}\n\ud83d\udce6 ${t.newBalance}: *${newQuantity}* ${pr.unit}\n${status}`;
+            const msg = `${t.operation_success}\n\ud83d\udcf1 ${t.product}: *${pr.name}*\n\ud83d\udcc8 ${t.income}: *${actualQty}* ${fUnit(pr.unit)}\n\ud83d\udce6 ${t.newBalance}: *${newQuantity}* ${fUnit(pr.unit)}\n${status}`;
             await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
         }
         return NextResponse.json({ ok: true })
@@ -260,7 +266,7 @@ export async function POST(request: Request) {
                   }
                 });
                 const status = newQuantity <= pr.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
-                const msg = `${t.operation_success}\n📱 ${t.product}: *${pr.name}*\n📉 ${t.deduct}: *${qty}* ${pr.unit}\n👤 ${t.who_to}: *${noteText}*\n📦 ${t.newBalance}: *${newQuantity}* ${pr.unit}\n${status}`;
+                const msg = `${t.operation_success}\n📱 ${t.product}: *${pr.name}*\n📉 ${t.deduct}: *${qty}* ${fUnit(pr.unit)}\n👤 ${t.who_to}: *${noteText}*\n📦 ${t.newBalance}: *${newQuantity}* ${fUnit(pr.unit)}\n${status}`;
                 await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
             }
             return NextResponse.json({ ok: true });

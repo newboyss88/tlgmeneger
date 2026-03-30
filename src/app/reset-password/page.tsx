@@ -170,8 +170,8 @@ export default function ResetPasswordPage() {
               <Bot size={26} color="white" />
             </div>
           </div>
-          <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '8px' }}>{t('reset_password_page_title')}</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>{t('reset_password_page_desc')}</p>
+          <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '8px' }}>{t('reset_password_title')}</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>{t('reset_password_desc')}</p>
         </div>
 
         <Suspense fallback={<div className="card" style={{ padding: '32px', textAlign: 'center' }}><Loader2 className="animate-spin mx-auto" /></div>}>

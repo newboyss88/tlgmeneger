@@ -1223,6 +1223,5 @@ export const translations = {
     code_expired: 'Verification code expired',
     invalid_code: 'Invalid verification code',
     code_sent_success: 'Verification code sent to your email!',
-    bot_commands: 'Bot Commands',
   },
 }

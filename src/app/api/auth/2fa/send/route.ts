@@ -6,18 +6,19 @@ import { sendMail } from '@/lib/mail'
 export async function POST(req: Request) {
   try {
     const { email, password } = await req.json()
+    const input = email?.trim()
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email va parol kiritilishi shart' }, { status: 400 })
+    if (!input || !password) {
+      return NextResponse.json({ error: 'Email/telefon va parol kiritilishi shart' }, { status: 400 })
     }
 
-    // Foydalanuvchini topish
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: {
-        settings: true
-      }
-    })
+    // Foydalanuvchini topish (email yoki telefon orqali)
+    let user
+    if (input.startsWith('+') || /^\d{9,}$/.test(input)) {
+       user = await prisma.user.findFirst({ where: { phone: input } })
+    } else {
+       user = await prisma.user.findUnique({ where: { email: input } })
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'Foydalanuvchi topilmadi' }, { status: 404 })
@@ -80,6 +81,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, twoFactorEnabled: true })
   } catch (error: any) {
     console.error('2FA Send Error:', error)
-    return NextResponse.json({ error: 'Xatolik yuz berdi' }, { status: 500 })
+    const errorMessage = error.message || 'Xatolik yuz berdi'
+    return NextResponse.json({ 
+      error: `Email yuborishda xatolik: ${errorMessage}. SMTP sozlamalarini tekshiring.` 
+    }, { status: 500 })
   }
 }

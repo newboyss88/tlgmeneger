@@ -167,6 +167,7 @@ export async function PUT(request: Request) {
       const basicFields = {
         ...(autoReply !== undefined && { autoReply }),
         ...(title && { title }),
+        ...(description !== undefined && { description }),
         ...(language !== undefined && { language }),
       }
 

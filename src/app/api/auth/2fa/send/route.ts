@@ -56,7 +56,8 @@ export async function POST(req: Request) {
     // Email jo\'natish
     const appName = process.env.NEXT_PUBLIC_APP_NAME || 'TelegramManager'
     const lang = (user.language as 'uz' | 'ru' | 'en') || 'uz'
-    const t = (require('@/lib/i18n/translations').default)[lang]
+    const { translations } = require('@/lib/i18n/translations')
+    const t = translations[lang]
 
     // 1. Email yuborish
     const mailResult = await sendMail({

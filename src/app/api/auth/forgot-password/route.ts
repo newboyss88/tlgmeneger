@@ -29,7 +29,8 @@ export async function POST(request: Request) {
 
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${token}`
     const lang = (user.language as 'uz' | 'ru' | 'en') || 'uz'
-    const t = (require('@/lib/i18n/translations').default)[lang]
+    const { translations } = require('@/lib/i18n/translations')
+    const t = translations[lang]
 
     const mailResult = await sendMail({
       to: email,

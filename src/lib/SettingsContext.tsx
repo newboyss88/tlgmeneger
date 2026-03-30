@@ -17,7 +17,7 @@ interface SettingsContextType {
 }
 
 const defaultSettings: Settings = {
-  appName: 'TelegramManager',
+  appName: process.env.NEXT_PUBLIC_APP_NAME || 'TelegramManager',
   darkMode: true,
   timezone: 'Asia/Tashkent',
 }

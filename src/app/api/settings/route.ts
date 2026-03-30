@@ -17,13 +17,31 @@ export async function GET() {
 
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    // 2. Foydalanuvchi sozlamalarini olish
     const settings = await prisma.setting.findMany({
       where: { userId },
     })
 
+    // 3. Super Admin sozlamalarini (Global) olish
+    const globalSettings = await prisma.setting.findMany({
+      where: { 
+        userId: superAdmin?.id || '',
+        key: 'appName'
+      },
+    })
+
     // Convert to key-value object
     const settingsObj: Record<string, any> = {}
-    settings.forEach((s: any) => { settingsObj[s.key] = s.value })
+    
+    // Global sozlamalarni birinchi qo'shish
+    globalSettings.forEach((s: any) => { settingsObj[s.key] = s.value })
+    
+    // Foydalanuvchi sozlamalari bilan to'ldirish (Global sozlamalarni o'chirib yubormaslik sharti bilan appName-dan tashqari)
+    settings.forEach((s: any) => { 
+      if (s.key !== 'appName' || userId === superAdmin?.id) {
+        settingsObj[s.key] = s.value 
+      }
+    })
 
     // User modelidan qo'shimcha ma'lumotlarni qo'shish
     const user = await prisma.user.findUnique({
@@ -33,6 +51,8 @@ export async function GET() {
 
     if (user) {
       settingsObj.telegramId = user.telegramId
+      // Agar Super Admin bo'lsa appName'ni modeldan emas, baribir global settings'dan olganimiz yaxshi, 
+      // lekin bizda hozircha baribir modelda appName yo'q.
       settingsObj.twoFactorAuth = user.twoFactorEnabled
     }
 

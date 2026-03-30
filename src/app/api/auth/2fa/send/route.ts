@@ -86,9 +86,37 @@ export async function POST(req: Request) {
 
     // 2. Telegram yuborish (agar telegramId bo'lsa)
     let tgResult: { success: boolean; error?: any } = { success: false, error: 'Telegram not linked' }
-    if (user.telegramId) {
+    let telegramId = user.telegramId;
+
+    // Self-healing: Agar telegramId bo'lmasa, telegramUsername orqali qidirib ko'rish
+    if (!telegramId) {
+      const usernameSetting = await prisma.setting.findFirst({
+        where: { userId: user.id, key: 'telegramUsername' }
+      });
+      
+      if (usernameSetting?.value) {
+        let username = usernameSetting.value.trim().toLowerCase();
+        if (username.startsWith('@')) username = username.substring(1);
+        
+        const tgUser = await prisma.telegramUser.findFirst({
+          where: { username: { equals: username } },
+          orderBy: { createdAt: 'desc' }
+        });
+        
+        if (tgUser) {
+          telegramId = tgUser.telegramId;
+          // Bazadagi foydalanuvchini ham yangilab qo'yamiz (keyingi safar tezroq ishlashi uchun)
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { telegramId: telegramId }
+          });
+        }
+      }
+    }
+
+    if (telegramId) {
        const tgMsg = `🔐 *${appName}* 2FA Tasdiqlash Kodi\n\nSizning kirish kodingiz: \`${code}\`\n\n_Ushbu kod 10 daqiqa yaroqli._`
-       const res = await sendTelegramMessage(user.telegramId, tgMsg, 'Markdown')
+       const res = await sendTelegramMessage(telegramId, tgMsg, 'Markdown')
        tgResult = { success: res.success, error: res.error }
     }
 

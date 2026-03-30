@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [is2faRequired, setIs2faRequired] = useState(false)
   const [twoFactorCode, setTwoFactorCode] = useState('')
+  const [deliveryStatus, setDeliveryStatus] = useState({ email: false, telegram: false })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,6 +47,10 @@ export default function LoginPage() {
         const sendData = await sendRes.json()
         
         if (sendData.success) {
+          setDeliveryStatus({
+            email: !!sendData.channels?.email,
+            telegram: !!sendData.channels?.telegram
+          })
           setIs2faRequired(true)
         } else {
           setError(sendData.error || 'Tasdiqlash kodini yuborishda xatolik')
@@ -263,6 +268,16 @@ export default function LoginPage() {
                 <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
                   {t('verify_2fa_desc')}
                 </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: deliveryStatus.email ? 'var(--accent-green)' : 'var(--text-tertiary)' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: deliveryStatus.email ? 'var(--accent-green)' : 'var(--text-tertiary)' }} />
+                    {t('code_sent_email')}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: deliveryStatus.telegram ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: deliveryStatus.telegram ? 'var(--accent-green)' : 'var(--accent-rose)' }} />
+                    {deliveryStatus.telegram ? t('code_sent_tg') : t('code_not_sent_tg')}
+                  </div>
+                </div>
               </div>
 
               {error && (

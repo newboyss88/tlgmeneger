@@ -61,13 +61,13 @@ export async function PUT(request: Request) {
 
       // Telegram username kiritilganda IDni qidirish va bog'lash
       if (key === 'telegramUsername' && value) {
-        let username = String(value).trim()
+        let username = String(value).trim().toLowerCase()
         if (username.startsWith('@')) username = username.substring(1)
         
         // TelegramUser jadvalidan ushbu username-li foydalanuvchini qidiramiz
         const tgUser = await prisma.telegramUser.findFirst({
           where: { 
-            username: { equals: username }
+            username: { equals: username } // Bizda hozircha db darajasida insensitive emas, lekin normalizatsiya qildik
           },
           orderBy: { createdAt: 'desc' }
         })

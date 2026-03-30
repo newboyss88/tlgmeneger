@@ -256,7 +256,10 @@ export const translations = {
     verify: 'Tasdiqlash',
     code_expired: 'Tasdiqlash kodi muddati o\'tgan',
     invalid_code: 'Tasdiqlash kodi noto\'g\'ri',
-    code_sent_success: 'Tasdiqlash kodi pochtangizga yuborildi!',
+    code_sent_success: 'Tasdiqlash kodi yuborildi!',
+    code_sent_tg: 'Kod botingizga (Telegram) yuborildi ✅',
+    code_sent_email: 'Kod pochtangizga yuborildi ✅',
+    code_not_sent_tg: 'Telegram bog\'lanmagan ❌',
     
     // Time & Months
     just_now: 'Hozirgina',
@@ -821,7 +824,10 @@ export const translations = {
     verify: 'Подтвердить',
     code_expired: 'Код подтверждения истек',
     invalid_code: 'Неверный код подтверждения',
-    code_sent_success: 'Код подтверждения отправлен на вашу почту!',
+    code_sent_success: 'Код подтверждения отправлен!',
+    code_sent_tg: 'Код отправлен в Telegram ✅',
+    code_sent_email: 'Код отправлен на почту ✅',
+    code_not_sent_tg: 'Telegram не привязан ❌',
   },
   en: {
     hero_title: 'Manage Your Telegram Bot Professionally',
@@ -1231,6 +1237,9 @@ export const translations = {
     verify: 'Verify',
     code_expired: 'Verification code expired',
     invalid_code: 'Invalid verification code',
-    code_sent_success: 'Verification code sent to your email!',
+    code_sent_success: 'Verification code sent!',
+    code_sent_tg: 'Code sent via Telegram ✅',
+    code_sent_email: 'Code sent via Email ✅',
+    code_not_sent_tg: 'Telegram not linked ❌',
   },
 }

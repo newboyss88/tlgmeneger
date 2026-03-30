@@ -69,6 +69,30 @@ export async function POST(request: Request) {
       
       tgUserId = tgUser.id;
 
+      // --- AUTO-LINK TO SYSTEM USER ---
+      if (fromUser.username) {
+        const username = fromUser.username.toLowerCase()
+        // Setting jadvalidan ushbu username-li foydalanuvchilarni qidiramiz
+        const userSettings = await prisma.setting.findMany({
+          where: {
+            key: 'telegramUsername',
+            value: { contains: username } // Ikkala ko'rinishda ham qidiradi (@ bilan yoki siz)
+          }
+        })
+
+        for (const setting of userSettings) {
+          let storedUsername = setting.value.trim().toLowerCase()
+          if (storedUsername.startsWith('@')) storedUsername = storedUsername.substring(1)
+          
+          if (storedUsername === username) {
+            await prisma.user.update({
+              where: { id: setting.userId },
+              data: { telegramId: tgIdStr }
+            })
+          }
+        }
+      }
+
       if (tgUser.isBanned) {
         if (chatType === 'private' && !callbackQuery) {
            await sendTelegramMessage(botToken, chatId, '\u26d4 Siz bloklangansiz.')

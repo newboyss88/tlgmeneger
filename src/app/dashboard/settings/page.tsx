@@ -33,6 +33,8 @@ export default function SettingsPage() {
     smtpUser: '',
     smtpPass: '',
     smtpFrom: '',
+    telegramUsername: '',
+    telegramId: null as string | null,
   })
   const [loading, setLoading] = useState(false)
 
@@ -164,6 +166,31 @@ export default function SettingsPage() {
             value={!!settings.twoFactorAuth}
             onChange={() => setSettings({ ...settings, twoFactorAuth: !settings.twoFactorAuth })}
           />
+
+          <div style={{ marginTop: '16px', padding: '16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: settings.telegramId ? 'var(--accent-green)' : 'var(--accent-rose)' }} />
+              <span style={{ fontSize: '13px', fontWeight: '700' }}>
+                {settings.telegramId ? t('tg_linked_success') : t('tg_username')}
+              </span>
+            </div>
+            
+            <div className="input-group">
+              <label style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{t('tg_username')}</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="text" 
+                  className="input" 
+                  placeholder="@username" 
+                  value={settings.telegramUsername || ''} 
+                  onChange={(e) => setSettings({ ...settings, telegramUsername: e.target.value })}
+                />
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
+                {t('tg_sync_info')}
+              </p>
+            </div>
+          </div>
         </div>
         <button className="btn btn-primary" style={{ marginTop: '20px' }} onClick={handleSave} disabled={loading}>
           {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}

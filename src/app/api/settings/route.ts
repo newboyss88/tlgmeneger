@@ -13,8 +13,18 @@ export async function GET() {
     })
 
     // Convert to key-value object
-    const settingsObj: Record<string, string> = {}
+    const settingsObj: Record<string, any> = {}
     settings.forEach((s: any) => { settingsObj[s.key] = s.value })
+
+    // User modelidan qo'shimcha ma'lumotlarni qo'shish
+    const user = await prisma.user.findUnique({
+      where: { id: (session.user as any).id },
+      select: { telegramId: true }
+    })
+
+    if (user) {
+      settingsObj.telegramId = user.telegramId
+    }
 
     return NextResponse.json(settingsObj)
   } catch (error) {
@@ -47,6 +57,27 @@ export async function PUT(request: Request) {
           where: { id: userId },
           data: { twoFactorEnabled: value === true || value === 'true' }
         })
+      }
+
+      // Telegram username kiritilganda IDni qidirish va bog'lash
+      if (key === 'telegramUsername' && value) {
+        let username = String(value).trim()
+        if (username.startsWith('@')) username = username.substring(1)
+        
+        // TelegramUser jadvalidan ushbu username-li foydalanuvchini qidiramiz
+        const tgUser = await prisma.telegramUser.findFirst({
+          where: { 
+            username: { equals: username }
+          },
+          orderBy: { createdAt: 'desc' }
+        })
+
+        if (tgUser) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: { telegramId: tgUser.telegramId }
+          })
+        }
       }
     }
 

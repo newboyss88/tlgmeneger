@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { compare } from 'bcryptjs'
 import { sendMail } from '@/lib/mail'
+import { sendTelegramMessage } from '@/lib/telegram'
 
 export async function POST(req: Request) {
   try {
@@ -54,6 +55,8 @@ export async function POST(req: Request) {
 
     // Email jo'natish
     const appName = process.env.NEXT_PUBLIC_APP_NAME || 'TelegramManager'
+    
+    // 1. Email yuborish
     const mailResult = await sendMail({
       to: user.email,
       subject: `Tasdiqlash kodi - ${appName}`,
@@ -70,6 +73,9 @@ export async function POST(req: Request) {
           <p style="color: #64748b; font-size: 14px;">
             Ushbu kod 10 daqiqa davomida amal qiladi. Agar buni siz so'ramagan bo'lsangiz, iltimos parolingizni o'zgartiring.
           </p>
+          <p style="color: #94a3b8; font-size: 12px; margin-top: 16px;">
+            Siz ushbu kodni Telegram botimiz orqali ham olishingiz mumkin (agar ulangan bo'lsa).
+          </p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
           <p style="color: #94a3b8; font-size: 12px; text-align: center;">
             &copy; ${new Date().getFullYear()} ${appName}. Barcha huquqlar himoyalangan.
@@ -78,16 +84,34 @@ export async function POST(req: Request) {
       `
     })
 
-    if (!mailResult.success) {
-      throw new Error(typeof mailResult.error === 'string' ? mailResult.error : 'SMTP ulanishda xatolik yuz berdi')
+    // 2. Telegram yuborish (agar telegramId bo'lsa)
+    let tgResult: { success: boolean; error?: any } = { success: false, error: 'Telegram not linked' }
+    if (user.telegramId) {
+       const tgMsg = `🔐 *${appName}* 2FA Tasdiqlash Kodi\n\nSizning kirish kodingiz: \`${code}\`\n\n_Ushbu kod 10 daqiqa yaroqli._`
+       const res = await sendTelegramMessage(user.telegramId, tgMsg, 'Markdown')
+       tgResult = { success: res.success, error: res.error }
     }
 
-    return NextResponse.json({ success: true, twoFactorEnabled: true })
+    // Agar ikkalasi ham xato bo'lsa, xabar berish. 
+    // Lekin bittasi o'tsa ham login sahifasiga o'tkazaveramiz (foydalanuvchi qaysidir yo'l bilan olishi uchun)
+    if (!mailResult.success && !tgResult.success) {
+      const errorMsg = `Kod yuborib bo'lmadi. Email: ${mailResult.error || 'Nomalum'}, Telegram: ${tgResult.error || 'Nomalum'}`
+      throw new Error(errorMsg)
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      twoFactorEnabled: true,
+      channels: {
+        email: mailResult.success,
+        telegram: tgResult.success
+      }
+    })
   } catch (error: any) {
     console.error('2FA Send Error:', error)
     const errorMessage = error.message || 'Xatolik yuz berdi'
     return NextResponse.json({ 
-      error: `Email yuborishda xatolik: ${errorMessage}. SMTP sozlamalarini tekshiring.` 
+      error: `Kod yuborishda xatolik: ${errorMessage}. Iltimos, SMTP yoki Telegram bot sozlamalarini tekshiring.` 
     }, { status: 500 })
   }
 }

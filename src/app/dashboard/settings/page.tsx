@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { Language } from '@/lib/i18n/translations'
 import {
-  Globe, Bell, Shield, Palette, Key, Save, Loader2, CheckCircle, Settings as SettingsIcon
+  Globe, Bell, Shield, Palette, Key, Save, Loader2, CheckCircle, Settings as SettingsIcon, Mail
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useSettings } from '@/lib/SettingsContext'
@@ -28,6 +28,11 @@ export default function SettingsPage() {
     twoFactorAuth: false,
     apiEnabled: false,
     appName: 'TelegramManager',
+    smtpHost: '',
+    smtpPort: '',
+    smtpUser: '',
+    smtpPass: '',
+    smtpFrom: '',
   })
   const [loading, setLoading] = useState(false)
 
@@ -221,7 +226,86 @@ export default function SettingsPage() {
                 onChange={(e) => setSettings({ ...settings, appName: e.target.value })} />
             </div>
           </div>
-          <button className="btn" style={{ marginTop: '20px', background: 'var(--accent-rose)', color: 'white', borderColor: 'transparent' }} onClick={handleSave} disabled={loading}>
+          
+          <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-color)' }}>
+            <h4 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Mail size={16} /> {t('smtp_settings')}
+            </h4>
+            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px' }}>{t('smtp_settings_desc')}</p>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+              <div className="input-group">
+                <label>{t('smtp_host')}</label>
+                <input type="text" className="input" placeholder="smtp.gmail.com" value={settings.smtpHost || ''}
+                  onChange={(e) => setSettings({ ...settings, smtpHost: e.target.value })} />
+              </div>
+              <div className="input-group">
+                <label>{t('smtp_port')}</label>
+                <input type="text" className="input" placeholder="587" value={settings.smtpPort || ''}
+                  onChange={(e) => setSettings({ ...settings, smtpPort: e.target.value })} />
+              </div>
+              <div className="input-group">
+                <label>{t('smtp_user')}</label>
+                <input type="text" className="input" placeholder="user@gmail.com" value={settings.smtpUser || ''}
+                  onChange={(e) => setSettings({ ...settings, smtpUser: e.target.value })} />
+              </div>
+              <div className="input-group">
+                <label>{t('smtp_pass')}</label>
+                <input type="password" className="input" placeholder="••••••••" value={settings.smtpPass || ''}
+                  onChange={(e) => setSettings({ ...settings, smtpPass: e.target.value })} />
+              </div>
+              <div className="input-group">
+                <label>{t('smtp_from')}</label>
+                <input type="text" className="input" placeholder="noreply@domain.com" value={settings.smtpFrom || ''}
+                  onChange={(e) => setSettings({ ...settings, smtpFrom: e.target.value })} />
+              </div>
+            </div>
+
+            <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(124, 58, 237, 0.05)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--primary-500)' }}>
+               <p style={{ fontSize: '13px', fontWeight: '600', marginBottom: '12px' }}>{t('smtp_test')}</p>
+               <div style={{ display: 'flex', gap: '10px' }}>
+                  <input 
+                    type="email" 
+                    className="input" 
+                    placeholder={t('email_placeholder')}
+                    style={{ maxWidth: '250px' }}
+                    id="testEmailInput"
+                  />
+                  <button 
+                    className="btn btn-outline" 
+                    onClick={async () => {
+                      const email = (document.getElementById('testEmailInput') as HTMLInputElement).value;
+                      if (!email) return toast.error(t('fill_all_fields'));
+                      
+                      toast.loading(t('sending'));
+                      try {
+                        const res = await fetch('/api/settings/test-email', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email, smtp: {
+                            host: settings.smtpHost,
+                            port: settings.smtpPort,
+                            user: settings.smtpUser,
+                            pass: settings.smtpPass,
+                            from: settings.smtpFrom,
+                          }})
+                        });
+                        toast.dismiss();
+                        if(res.ok) toast.success(t('test_email_sent'));
+                        else toast.error(t('error'));
+                      } catch (err) {
+                        toast.dismiss();
+                        toast.error(t('network_error'));
+                      }
+                    }}
+                  >
+                    {t('send_test_email')}
+                  </button>
+               </div>
+            </div>
+          </div>
+
+          <button className="btn" style={{ marginTop: '24px', background: 'var(--accent-rose)', color: 'white', borderColor: 'transparent', width: '100%' }} onClick={handleSave} disabled={loading}>
             {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
             {t('save')}
           </button>

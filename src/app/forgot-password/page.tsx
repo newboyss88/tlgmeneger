@@ -17,11 +17,20 @@ export default function ForgotPasswordPage() {
     setLoading(true)
 
     try {
-      // Simulated - in production this would send an actual email
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setSent(true)
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setSent(true)
+      } else {
+        setError(data.error || 'Xatolik yuz berdi')
+      }
     } catch {
-      setError('Xatolik yuz berdi')
+      setError('Tarmoq xatosi')
     } finally {
       setLoading(false)
     }

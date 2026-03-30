@@ -40,6 +40,14 @@ export async function PUT(request: Request) {
         update: { value: String(value) },
         create: { userId, key, value: String(value) },
       })
+
+      // User modelidagi twoFactorEnabled fieldini ham yangilash
+      if (key === 'twoFactorAuth') {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { twoFactorEnabled: value === true || value === 'true' }
+        })
+      }
     }
 
     // Create audit log

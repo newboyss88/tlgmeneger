@@ -18,6 +18,7 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: 'Email', type: 'text' },
         password: { label: 'Password', type: 'password' },
+        code: { label: '2FA Code', type: 'text' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -26,18 +27,12 @@ export const authOptions: NextAuthOptions = {
 
         const input = credentials.email.trim()
 
-        // Check if input is phone or email
+        // Foydalanuvchini topish
         let user
         if (input.startsWith('+') || /^\d{9,}$/.test(input)) {
-          // Phone login
-          user = await prisma.user.findFirst({
-            where: { phone: input },
-          })
+          user = await prisma.user.findFirst({ where: { phone: input } })
         } else {
-          // Email login
-          user = await prisma.user.findUnique({
-            where: { email: input },
-          })
+          user = await prisma.user.findUnique({ where: { email: input } })
         }
 
         if (!user) {
@@ -49,9 +44,30 @@ export const authOptions: NextAuthOptions = {
         }
 
         const isPasswordValid = await compare(credentials.password, user.password)
-
         if (!isPasswordValid) {
           throw new Error('Parol noto\'g\'ri')
+        }
+
+        // 2FA tekshiruvi
+        if (user.twoFactorEnabled) {
+          if (!credentials.code) {
+            throw new Error('2FA_REQUIRED')
+          }
+
+          const twoFactorCode = await prisma.twoFactorCode.findFirst({
+            where: {
+              userId: user.id,
+              code: credentials.code,
+              expiresAt: { gt: new Date() }
+            }
+          })
+
+          if (!twoFactorCode) {
+            throw new Error('Tasdiqlash kodi noto\'g\'ri yoki muddati o\'tgan')
+          }
+
+          // Koddan foydalanilgandan so'ng o'chirish
+          await prisma.twoFactorCode.delete({ where: { id: twoFactorCode.id } })
         }
 
         return {

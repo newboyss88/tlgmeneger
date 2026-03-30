@@ -24,7 +24,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const getMenuItems = () => [
     { href: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
     { href: '/dashboard/bot', icon: Bot, label: t('bot_settings') },
-    { href: '/dashboard/bot/commands', icon: ListMusic, label: 'Menyular' },
+    { href: '/dashboard/bot/commands', icon: ListMusic, label: t('bot_commands') },
     { href: '/dashboard/group', icon: MessageSquare, label: t('group_settings') },
     { href: '/dashboard/warehouse', icon: Warehouse, label: t('warehouse') },
     { href: '/dashboard/analytics', icon: PieChart, label: t('group_analytics') || 'Analitika' },

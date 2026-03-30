@@ -1,33 +1,41 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
+import { motion } from 'framer-motion'
 import { Bell, Menu, Search } from 'lucide-react'
 import { useState } from 'react'
 
 interface DashboardHeaderProps {
   onMenuToggle: () => void
+  isOpen: boolean
 }
 
-export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
+export function DashboardHeader({ onMenuToggle, isOpen }: DashboardHeaderProps) {
   const { data: session } = useSession()
   const [searchQuery, setSearchQuery] = useState('')
 
   return (
-    <header style={{
-      position: 'fixed',
-      top: 0,
-      right: 0,
-      left: 0,
-      height: 'var(--header-height)',
-      background: 'rgba(10, 10, 26, 0.8)',
-      backdropFilter: 'blur(20px)',
-      borderBottom: '1px solid var(--border-secondary)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 24px',
-      zIndex: 40,
-    }}>
+    <motion.header
+      initial={false}
+      animate={{ 
+        left: isOpen ? 280 : 80,
+      }}
+      transition={{ duration: 0.25, ease: 'easeInOut' }}
+      style={{
+        position: 'fixed',
+        top: 0,
+        right: 0,
+        height: 'var(--header-height)',
+        background: 'rgba(10, 10, 26, 0.8)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--border-secondary)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 24px',
+        zIndex: 45,
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <button
           onClick={onMenuToggle}
@@ -113,6 +121,6 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
           </div>
         </div>
       </div>
-    </header>
+    </motion.header>
   )
 }

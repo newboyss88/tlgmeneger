@@ -48,7 +48,7 @@ export default function DashboardLayout({
         display: 'flex',
         flexDirection: 'column',
       }}>
-        <DashboardHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
+        <DashboardHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} isOpen={sidebarOpen} />
         <main style={{
           flex: 1,
           padding: '24px',

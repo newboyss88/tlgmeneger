@@ -56,6 +56,7 @@ export async function POST(req: Request) {
     await sendMail({
       to: user.email,
       subject: `Tasdiqlash kodi - ${appName}`,
+      text: `Sizning tasdiqlash kodingiz: ${code}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
           <h2 style="color: #7c3aed; margin-bottom: 16px;">Tizimga kirishni tasdiqlang</h2>

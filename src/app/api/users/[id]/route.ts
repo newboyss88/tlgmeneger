@@ -11,7 +11,7 @@ export async function PUT(request: Request, context: any) {
     }
     const { id } = await context.params
     const body = await request.json()
-    const { role, isBlocked, phone, name, telegramId, language } = body
+    const { role, isBlocked, phone, name, telegramId, language, twoFactorEnabled } = body
 
     const updateData: any = {}
     if (role !== undefined) updateData.role = role
@@ -20,6 +20,7 @@ export async function PUT(request: Request, context: any) {
     if (name !== undefined) updateData.name = name
     if (telegramId !== undefined) updateData.telegramId = telegramId
     if (language !== undefined) updateData.language = language
+    if (twoFactorEnabled !== undefined) updateData.twoFactorEnabled = twoFactorEnabled
 
     const updatedUser = await prisma.user.update({
       where: { id },

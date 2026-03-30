@@ -98,7 +98,9 @@ export default function UsersPage() {
           name: targetUser.name,
           phone: targetUser.phone,
           role: targetUser.role,
-          telegramId: targetUser.telegramId
+          telegramId: targetUser.telegramId,
+          language: targetUser.language,
+          twoFactorEnabled: targetUser.twoFactorEnabled
         })
       })
       if (res.ok) {

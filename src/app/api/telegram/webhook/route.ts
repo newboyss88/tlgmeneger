@@ -309,9 +309,33 @@ export async function POST(request: Request) {
             const commands = settings.commands || [];
             const customCmd = commands.find((c: any) => c.command === commandName);
             
-            if (customCmd && customCmd.response && commandName !== 'start') {
-               await sendTelegramMessage(botToken, chatId, customCmd.response, 'Markdown');
-               return NextResponse.json({ ok: true });
+            if (customCmd) {
+               const cmdType = customCmd.type || 'text';
+               const response = customCmd.response;
+
+               if (cmdType === 'text' && response && commandName !== 'start') {
+                  await sendTelegramMessage(botToken, chatId, response, 'Markdown');
+                  return NextResponse.json({ ok: true });
+               }
+
+               if (cmdType === 'link' && response) {
+                  const label = customCmd.description || t.product || 'Link';
+                  const buttons = [[{ text: `\ud83c\udf10 ${label}`, url: response.startsWith('http') ? response : `https://tlgmeneger.vercel.app${response}` }]];
+                  await sendTelegramMessage(botToken, chatId, `*${label}*`, 'Markdown', { inline_keyboard: buttons });
+                  return NextResponse.json({ ok: true });
+               }
+
+               if (cmdType === 'action' && response) {
+                  if (response === 'menu' || response === 'sklad') {
+                     const buttons = bot.warehouses.map((w: any) => [{ text: `\ud83c\udfe2 ${w.name}`, callback_data: `wh_${w.id}` }]);
+                     await sendTelegramMessage(botToken, chatId, `*${t.select_warehouse}*`, 'Markdown', { inline_keyboard: buttons });
+                     return NextResponse.json({ ok: true });
+                  }
+                  if (response === 'help') {
+                     await sendTelegramMessage(botToken, chatId, t.help_text, 'Markdown');
+                     return NextResponse.json({ ok: true });
+                  }
+               }
             }
          } catch(e) {
             console.error('Webhook settings parse error:', e);

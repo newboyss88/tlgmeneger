@@ -21,6 +21,7 @@ export default function AnalyticsPage() {
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [clearing, setClearing] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
 
   // Filters & Export State
   const [bots, setBots] = useState<any[]>([])
@@ -34,6 +35,7 @@ export default function AnalyticsPage() {
     try {
       const q = new URLSearchParams()
       if (selectedBots.length) q.set('bots', selectedBots.join(','))
+      if (selectedDate) q.set('date', selectedDate)
       
       const res = await fetch('/api/analytics?' + q.toString())
       const d = await res.json()
@@ -64,7 +66,7 @@ export default function AnalyticsPage() {
   // Re-fetch when filters change
   useEffect(() => {
     if (!loading) fetchData()
-  }, [selectedBots])
+  }, [selectedBots, selectedDate])
 
   const handleClearHistory = async () => {
     setClearing(true)
@@ -384,6 +386,26 @@ export default function AnalyticsPage() {
                 animation: 'pulse 2s infinite'
               }} />
               {t('live_log') || 'Jonli Log'}
+              <div style={{ marginLeft: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input 
+                  type="date" 
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  style={{
+                    padding: '4px 8px', borderRadius: '8px', fontSize: '12px',
+                    background: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)',
+                    color: 'var(--text-primary)', cursor: 'pointer', outline: 'none'
+                  }}
+                />
+                {selectedDate && (
+                  <button 
+                    onClick={() => setSelectedDate('')}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '11px' }}
+                  >
+                    {t('clear') || 'Tozalash'}
+                  </button>
+                )}
+              </div>
               <span style={{
                 padding: '2px 8px', borderRadius: '8px', fontSize: '11px',
                 fontWeight: '700', background: 'rgba(16,185,129,0.1)', color: '#10B981'
@@ -643,6 +665,16 @@ export default function AnalyticsPage() {
                 Hisobotni Yuklash
               </h3>
               
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>{t('select_date') || 'Sanani tanlang'}</label>
+                <input 
+                  type="date" 
+                  value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+                  className="input-field"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Format</label>
                 <select 

@@ -8,6 +8,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const botsParam = searchParams.get('bots')
     const groupsParam = searchParams.get('groups')
+    const dateParam = searchParams.get('date')
     
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -35,6 +36,14 @@ export async function GET(request: Request) {
 
     if (orConditions.length > 0) {
        whereClause.OR = orConditions
+    }
+
+    if (dateParam) {
+       const start = new Date(dateParam)
+       start.setHours(0, 0, 0, 0)
+       const end = new Date(dateParam)
+       end.setHours(23, 59, 59, 999)
+       whereClause.createdAt = { gte: start, lte: end }
     }
 
     // Fetch transactions

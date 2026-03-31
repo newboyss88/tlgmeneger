@@ -477,6 +477,8 @@ export const translations = {
     phone_invalid: 'Telefon raqamni to\'g\'ri kiriting (masalan: +998901234567)',
     tg_username_invalid: 'Telegram username noto\'g\'ri',
     have_account: 'Hisobingiz bormi?',
+    select_date: 'Sanani tanlang',
+    filter_by_date: 'Sana bo\'yicha saralash',
   },
   ru: {
     hero_title: 'Профессиональное Управление Вашим Telegram Ботом',
@@ -952,6 +954,8 @@ export const translations = {
     phone_invalid: 'Введите номер телефона правильно (напр: +998901234567)',
     tg_username_invalid: 'Неверный Telegram username',
     have_account: 'У вас есть аккаунт?',
+    select_date: 'Выберите дату',
+    filter_by_date: 'Фильтр по дате',
   },
   en: {
     hero_title: 'Manage Your Telegram Bot Professionally',
@@ -1427,5 +1431,7 @@ export const translations = {
     phone_invalid: 'Enter phone number correctly (e.g., +998901234567)',
     tg_username_invalid: 'Invalid Telegram username',
     have_account: 'Already have an account?',
+    select_date: 'Select Date',
+    filter_by_date: 'Filter by date',
   },
 }

@@ -27,14 +27,22 @@ export async function POST(request: Request) {
       { expiresIn: '1h' }
     )
 
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${token}`
-    const lang = (user.language as 'uz' | 'ru' | 'en') || 'uz'
+    const appURL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const resetUrl = `${appURL}/reset-password?token=${token}`
+    
+    // Platforma nomini bazadan olish
+    const superAdmin = await prisma.user.findFirst({ where: { role: 'SUPER_ADMIN' } })
+    const appNameSetting = await prisma.setting.findUnique({
+      where: { userId_key: { userId: superAdmin?.id || '', key: 'appName' } }
+    })
+    const appName = appNameSetting?.value || process.env.NEXT_PUBLIC_APP_NAME || 'Platform'
+    const lang = ((user as any).language as 'uz' | 'ru' | 'en') || 'uz'
     const { translations } = require('@/lib/i18n/translations')
     const t = translations[lang]
 
     const mailResult = await sendMail({
       to: email,
-      subject: `${t.email_reset_subject} - TelegramManager`,
+      subject: `${t.email_reset_subject} - ${appName}`,
       text: `${t.email_reset_body}\n${resetUrl}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
@@ -50,7 +58,7 @@ export async function POST(request: Request) {
           </p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
           <p style="color: #94a3b8; font-size: 12px; text-align: center;">
-            &copy; ${new Date().getFullYear()} TelegramManager. Barcha huquqlar himoyalangan.
+            &copy; ${new Date().getFullYear()} ${appName}. Barcha huquqlar himoyalangan.
           </p>
         </div>
       `
@@ -60,7 +68,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email yuborishda xatolik yuz berdi' }, { status: 500 })
     }
 
-    return NextResponse.json({ message: 'Email muvaffaqiyatli yuborildi' })
+    return NextResponse.json({ message: t.api_error_reset_email_info })
   } catch (error) {
     console.error('Forgot password error:', error)
     return NextResponse.json({ error: 'Server xatosi' }, { status: 500 })

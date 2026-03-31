@@ -72,23 +72,27 @@ export async function POST(request: Request) {
 
     const data = await res.json()
 
+    const adminUser = await prisma.user.findUnique({ where: { id: (session.user as any).id } })
+    const lang = (adminUser as any)?.language || 'uz'
+    const { translations } = require('@/lib/i18n/translations')
+    const t = translations[lang]
+
     if (!data.ok) {
       console.error('Telegram send error:', data)
       
-      // Xatoni o'zbek tilida bildirish
-      let errorMsg = 'Xabar yuborishda xatolik yuz berdi'
+      let errorMsg = t.api_error_tg_send_failed || 'Xabar yuborishda xatolik yuz berdi'
       if (data.description?.includes('chat not found')) {
-        errorMsg = 'Foydalanuvchi topilmadi. Foydalanuvchi avval botga /start bosishi kerak!'
+        errorMsg = t.api_error_tg_not_found
       } else if (data.description?.includes('bot was blocked')) {
-        errorMsg = 'Foydalanuvchi botni bloklagan.'
+        errorMsg = t.api_error_tg_blocked
       } else if (data.description?.includes('user is deactivated')) {
-        errorMsg = 'Foydalanuvchi hisobi o\'chirilgan.'
+        errorMsg = t.api_error_tg_deactivated
       }
       
       return NextResponse.json({ error: errorMsg }, { status: 400 })
     }
 
-    return NextResponse.json({ success: true, message: 'Xabar muvaffaqiyatli yuborildi' })
+    return NextResponse.json({ success: true, message: t.api_success_msg_sent })
 
   } catch (error) {
     console.error('Telegram send message error:', error)

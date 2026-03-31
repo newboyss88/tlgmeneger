@@ -41,11 +41,11 @@ export async function POST(req: Request) {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 daqiqa yaroqli
 
     // Eski kodlarni o'chirish va yangisini saqlash
-    await prisma.twoFactorCode.deleteMany({
+    await (prisma as any).twoFactorCode.deleteMany({
       where: { userId: user.id }
     })
 
-    await prisma.twoFactorCode.create({
+    await (prisma as any).twoFactorCode.create({
       data: {
         code,
         userId: user.id,
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     })
     const appName = appNameSetting?.value || process.env.NEXT_PUBLIC_APP_NAME || 'TelegramManager'
     
-    const lang = (user.language as 'uz' | 'ru' | 'en') || 'uz'
+    const lang = ((user as any).language as 'uz' | 'ru' | 'en') || 'uz'
     const { translations } = require('@/lib/i18n/translations')
     const t = translations[lang]
 
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
             <span style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #1e293b;">${code}</span>
           </div>
           <p style="color: #64748b; font-size: 14px;">
-            ${t.email_2fa_footer}
+            ${t.email_2fa_footer || 'Bu kod 10 daqiqa davomida amal qiladi.'}
           </p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
           <p style="color: #94a3b8; font-size: 12px; text-align: center;">

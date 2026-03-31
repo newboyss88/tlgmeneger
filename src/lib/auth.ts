@@ -39,13 +39,16 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Foydalanuvchi topilmadi')
         }
 
+        const { translations } = require('./i18n/translations')
+        const t = translations[(user as any).language || 'uz']
+
         if (user.isBlocked) {
-          throw new Error('Sizning hisobingiz bloklangan')
+          throw new Error(t.banned_msg || 'Sizning hisobingiz bloklangan')
         }
 
         const isPasswordValid = await compare(credentials.password, user.password)
         if (!isPasswordValid) {
-          throw new Error('Parol noto\'g\'ri')
+          throw new Error(t.api_error_invalid_password || 'Parol noto\'g\'ri')
         }
 
         // 2FA tekshiruvi
@@ -54,7 +57,7 @@ export const authOptions: NextAuthOptions = {
             throw new Error('2FA_REQUIRED')
           }
 
-          const twoFactorCode = await prisma.twoFactorCode.findFirst({
+          const twoFactorCode = await (prisma as any).twoFactorCode.findFirst({
             where: {
               userId: user.id,
               code: credentials.code,
@@ -63,11 +66,11 @@ export const authOptions: NextAuthOptions = {
           })
 
           if (!twoFactorCode) {
-            throw new Error('Tasdiqlash kodi noto\'g\'ri yoki muddati o\'tgan')
+            throw new Error(t.api_error_token_invalid || 'Tasdiqlash kodi noto\'g\'ri yoki muddati o\'tgan')
           }
 
           // Koddan foydalanilgandan so'ng o'chirish
-          await prisma.twoFactorCode.delete({ where: { id: twoFactorCode.id } })
+          await (prisma as any).twoFactorCode.delete({ where: { id: (twoFactorCode as any).id } })
         }
 
         return {

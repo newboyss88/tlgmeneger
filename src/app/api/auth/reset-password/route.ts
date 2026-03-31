@@ -24,6 +24,10 @@ export async function POST(request: Request) {
     }
 
     const userId = decoded.userId
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    const lang = (user as any)?.language || 'uz'
+    const { translations } = require('@/lib/i18n/translations')
+    const t = translations[lang]
 
     // Hash new password
     const hashedPassword = await hash(password, 12)
@@ -45,7 +49,7 @@ export async function POST(request: Request) {
       }
     })
 
-    return NextResponse.json({ message: 'Parol muvaffaqiyatli yangilandi' })
+    return NextResponse.json({ message: t.reset_success || 'Parol muvaffaqiyatli yangilandi' })
   } catch (error) {
     console.error('Reset password error:', error)
     return NextResponse.json({ error: 'Server xatosi' }, { status: 500 })

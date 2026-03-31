@@ -4,10 +4,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { Bot, User, Mail, Lock, ArrowRight, Eye, EyeOff, Loader2, Phone } from 'lucide-react'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('+998')
@@ -23,22 +25,22 @@ export default function RegisterPage() {
     setError('')
 
     if (password !== confirmPassword) {
-      setError('Parollar mos kelmadi')
+      setError(t('passwords_dont_match'))
       return
     }
 
     if (password.length < 6) {
-      setError('Parol kamida 6 ta belgidan iborat bo\'lishi kerak')
+      setError(t('password_too_short'))
       return
     }
 
     if (!phone.startsWith('+') || phone.length < 10) {
-      setError('Telefon raqamni to\'g\'ri kiriting (masalan: +998901234567)')
+      setError(t('phone_invalid'))
       return
     }
     
     if (telegramId.length < 3) {
-      setError('Telegram username noto\'g\'ri')
+      setError(t('tg_username_invalid'))
       return
     }
 
@@ -59,7 +61,7 @@ export default function RegisterPage() {
 
       router.push('/login?registered=true')
     } catch {
-      setError('Serverda xatolik yuz berdi')
+      setError(t('server_error'))
     } finally {
       setLoading(false)
     }
@@ -99,8 +101,8 @@ export default function RegisterPage() {
               <Bot size={26} color="white" />
             </div>
           </Link>
-          <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '8px' }}>Ro'yxatdan o'tish</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>Yangi hisob yarating</p>
+          <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '8px' }}>{t('register')}</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>{t('register_desc')}</p>
         </div>
 
         <div className="card" style={{ padding: '32px' }}>
@@ -116,10 +118,10 @@ export default function RegisterPage() {
             )}
 
             <div className="input-group">
-              <label>Ismingiz *</label>
+              <label>{t('name_label')} *</label>
               <div style={{ position: 'relative' }}>
                 <User size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
-                <input type="text" className="input" placeholder="Ismingizni kiriting" value={name} onChange={(e) => setName(e.target.value)} required style={{ paddingLeft: '42px' }} />
+                <input type="text" className="input" placeholder={t('name_placeholder')} value={name} onChange={(e) => setName(e.target.value)} required style={{ paddingLeft: '42px' }} />
               </div>
             </div>
 
@@ -132,7 +134,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="input-group">
-              <label>Telefon raqam *</label>
+              <label>{t('phone_label')} *</label>
               <div style={{ position: 'relative' }}>
                 <Phone size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                 <input type="tel" className="input" placeholder="+998901234567" value={phone} onChange={(e) => setPhone(e.target.value)} required style={{ paddingLeft: '42px' }} />
@@ -140,7 +142,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="input-group">
-              <label>Telegram Username *</label>
+              <label>{t('telegram_username_label')} *</label>
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', fontWeight: '600' }}>@</span>
                 <input type="text" className="input" placeholder="username" value={telegramId} onChange={(e) => setTelegramId(e.target.value)} required style={{ paddingLeft: '42px' }} />
@@ -151,7 +153,7 @@ export default function RegisterPage() {
               <label>Parol *</label>
               <div style={{ position: 'relative' }}>
                 <Lock size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
-                <input type={showPassword ? 'text' : 'password'} className="input" placeholder="Parol kiriting" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ paddingLeft: '42px', paddingRight: '42px' }} />
+                <input type={showPassword ? 'text' : 'password'} className="input" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ paddingLeft: '42px', paddingRight: '42px' }} />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} style={{
                   position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
                   color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer',
@@ -162,22 +164,22 @@ export default function RegisterPage() {
             </div>
 
             <div className="input-group">
-              <label>Parolni tasdiqlang *</label>
+              <label>{t('confirm_password_label')} *</label>
               <div style={{ position: 'relative' }}>
                 <Lock size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
-                <input type="password" className="input" placeholder="Parolni qayta kiriting" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required style={{ paddingLeft: '42px' }} />
+                <input type="password" className="input" placeholder={t('confirm_password_placeholder')} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required style={{ paddingLeft: '42px' }} />
               </div>
             </div>
 
             <button type="submit" className="btn btn-primary btn-lg" disabled={loading} style={{ width: '100%', fontSize: '15px' }}>
-              {loading ? <Loader2 size={20} className="animate-spin" /> : <>Ro'yxatdan o'tish <ArrowRight size={18} /></>}
+              {loading ? <Loader2 size={20} className="animate-spin" /> : <>{t('register')} <ArrowRight size={18} /></>}
             </button>
           </form>
         </div>
 
         <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-          Hisobingiz bormi?{' '}
-          <Link href="/login" style={{ color: 'var(--primary-400)', fontWeight: '600' }}>Kirish</Link>
+          {t('have_account')}{' '}
+          <Link href="/login" style={{ color: 'var(--primary-400)', fontWeight: '600' }}>{t('login')}</Link>
         </p>
       </motion.div>
     </div>

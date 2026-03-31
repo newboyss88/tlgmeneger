@@ -200,12 +200,14 @@ export async function POST(request: Request) {
         const transactions = await prisma.transaction.findMany({
           where: {
             productId: { in: productIds },
-            createdAt: { gte: startDate }
+            createdAt: { gte: startDate },
+            type: 'OUT'
           },
           include: { 
             product: true,
             telegramUser: true
           },
+
           orderBy: { createdAt: 'desc' },
           take: 50
         });

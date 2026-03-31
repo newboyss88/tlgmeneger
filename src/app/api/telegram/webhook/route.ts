@@ -202,7 +202,10 @@ export async function POST(request: Request) {
             productId: { in: productIds },
             createdAt: { gte: startDate }
           },
-          include: { product: true },
+          include: { 
+            product: true,
+            telegramUser: true
+          },
           orderBy: { createdAt: 'desc' },
           take: 50
         });
@@ -212,12 +215,16 @@ export async function POST(request: Request) {
         } else {
            let report = `${t.report_title} (${wh?.name})\n\n`;
            transactions.forEach(tr => {
-              const date = new Date(tr.createdAt).toLocaleDateString();
+              const date = new Date(tr.createdAt).toLocaleDateString('en-US');
               const typeChar = tr.type === 'IN' ? '📈' : '📉';
-              report += `${date} | ${typeChar} ${tr.quantity} ${tr.product.unit} | ${tr.product.name}\n`;
+              const userName = tr.telegramUser ? (tr.telegramUser.firstName || tr.telegramUser.username || 'User') : 'User';
+              const cleanNote = tr.note ? tr.note.replace('KIMGA: ', '').replace('Telegram xabardan avto-chiqim. ', '').replace(/\"/g, '') : '';
+              
+              report += `• ${date} | ${userName} | ${tr.product.name} | ${tr.product.sku || '-'} | ${typeChar} ${tr.quantity} ${fUnit(tr.product.unit)} | ${cleanNote}\n`;
            });
            await sendTelegramMessage(botToken, chatId, report, 'Markdown', undefined, bot.id, tgUserId || undefined);
         }
+
         return NextResponse.json({ ok: true });
       }
 

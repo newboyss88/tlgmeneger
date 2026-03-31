@@ -395,21 +395,29 @@ export default function UsersPage() {
                   </td>
                   <td>
                     {user.telegramUsername || user.telegramId ? (
-                      <span 
+                      <a 
+                        href={user.telegramUsername 
+                          ? `https://t.me/${user.telegramUsername.replace('@', '')}` 
+                          : `https://t.me/${user.telegramId?.replace('@', '')}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
                         style={{ 
                           fontSize: '13px', 
                           color: 'var(--primary-400)', 
                           display: 'inline-flex', 
                           alignItems: 'center', 
-                          gap: '4px'
+                          gap: '4px',
+                          textDecoration: 'none'
                         }}
+                        className="hover-underline"
                       >
                         <MessageSquare size={14} />
                         {user.telegramUsername 
                           ? (user.telegramUsername.startsWith('@') ? user.telegramUsername : `@${user.telegramUsername}`)
                           : (user.telegramId?.startsWith('@') ? user.telegramId : `@${user.telegramId}`)
                         }
-                      </span>
+                      </a>
                     ) : (
                       <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>{t('not_available')}</span>
                     )}
@@ -555,14 +563,30 @@ export default function UsersPage() {
                             {isEditMode ? (
                               <input type="text" className="input" value={monitoringUser.telegramUsername || monitoringUser.telegramId || ''} onChange={(e) => setMonitoringUser({ ...monitoringUser, telegramUsername: e.target.value })} />
                             ) : (
-                              <div className="card" style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', fontSize: '14px', color: 'var(--primary-400)' }}>
+                              <a 
+                                href={monitoringUser.telegramUsername 
+                                  ? `https://t.me/${monitoringUser.telegramUsername.replace('@', '')}` 
+                                  : `https://t.me/${monitoringUser.telegramId?.replace('@', '')}`
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="card" 
+                                style={{ 
+                                  padding: '10px 14px', 
+                                  background: 'rgba(255,255,255,0.03)', 
+                                  fontSize: '14px', 
+                                  color: 'var(--primary-400)',
+                                  textDecoration: 'none',
+                                  display: 'block'
+                                }}
+                              >
                                 {monitoringUser.telegramUsername 
                                   ? `@${monitoringUser.telegramUsername.replace('@', '')}` 
                                   : monitoringUser.telegramId 
                                     ? `@${monitoringUser.telegramId.replace('@', '')}`
                                     : t('not_available')
                                 }
-                              </div>
+                              </a>
                             )}
                           </div>
                         </div>

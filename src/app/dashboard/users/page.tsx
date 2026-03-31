@@ -62,6 +62,10 @@ export default function UsersPage() {
   const [userToDelete, setUserToDelete] = useState<UserItem | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
+  // Message Sending State
+  const [messageModal, setMessageModal] = useState<UserItem | null>(null)
+  const [messageText, setMessageText] = useState('')
+
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/users')
@@ -281,6 +285,34 @@ export default function UsersPage() {
     }
   }
 
+  // SEND TELEGRAM MESSAGE
+  const handleSendMessage = async () => {
+    if (!messageModal || !messageText.trim()) return
+    setIsSubmitting(true)
+    try {
+      const res = await fetch('/api/telegram/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetTelegramId: messageModal.telegramId || messageModal.telegramUsername,
+          messageText
+        })
+      })
+      if (res.ok) {
+        toast.success(t('msg_sent_success') || 'Xabar yuborildi')
+        setMessageModal(null)
+        setMessageText('')
+      } else {
+        const data = await res.json()
+        toast.error(data.error || t('msg_send_error'))
+      }
+    } catch (e) {
+      toast.error(t('action_error'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   // FETCH RESOURCES (FULL CONTROL)
   const handleMonitorUser = async (user: UserItem, editMode: boolean = false) => {
     setMonitoringUser(user)
@@ -395,20 +427,15 @@ export default function UsersPage() {
                   </td>
                   <td>
                     {user.telegramUsername || user.telegramId ? (
-                      <a 
-                        href={user.telegramUsername 
-                          ? `https://t.me/${user.telegramUsername.replace('@', '')}` 
-                          : `https://t.me/${user.telegramId?.replace('@', '')}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <div 
+                        onClick={() => setMessageModal(user)}
                         style={{ 
                           fontSize: '13px', 
                           color: 'var(--primary-400)', 
                           display: 'inline-flex', 
                           alignItems: 'center', 
                           gap: '4px',
-                          textDecoration: 'none'
+                          cursor: 'pointer'
                         }}
                         className="hover-underline"
                       >
@@ -417,7 +444,7 @@ export default function UsersPage() {
                           ? (user.telegramUsername.startsWith('@') ? user.telegramUsername : `@${user.telegramUsername}`)
                           : (user.telegramId?.startsWith('@') ? user.telegramId : `@${user.telegramId}`)
                         }
-                      </a>
+                      </div>
                     ) : (
                       <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>{t('not_available')}</span>
                     )}
@@ -563,21 +590,18 @@ export default function UsersPage() {
                             {isEditMode ? (
                               <input type="text" className="input" value={monitoringUser.telegramUsername || monitoringUser.telegramId || ''} onChange={(e) => setMonitoringUser({ ...monitoringUser, telegramUsername: e.target.value })} />
                             ) : (
-                              <a 
-                                href={monitoringUser.telegramUsername 
-                                  ? `https://t.me/${monitoringUser.telegramUsername.replace('@', '')}` 
-                                  : `https://t.me/${monitoringUser.telegramId?.replace('@', '')}`
-                                }
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <div 
+                                onClick={() => {
+                                  setMessageModal(monitoringUser)
+                                  setMonitoringUser(null)
+                                }}
                                 className="card" 
                                 style={{ 
                                   padding: '10px 14px', 
                                   background: 'rgba(255,255,255,0.03)', 
                                   fontSize: '14px', 
                                   color: 'var(--primary-400)',
-                                  textDecoration: 'none',
-                                  display: 'block'
+                                  cursor: 'pointer'
                                 }}
                               >
                                 {monitoringUser.telegramUsername 
@@ -586,7 +610,7 @@ export default function UsersPage() {
                                     ? `@${monitoringUser.telegramId.replace('@', '')}`
                                     : t('not_available')
                                 }
-                              </a>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -805,6 +829,74 @@ export default function UsersPage() {
                 <button className="btn btn-primary" style={{ background: 'var(--error)' }} onClick={handleConfirmDelete} disabled={isDeleting}>
                   {isDeleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />} {t('delete')}
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Message Sending Modal */}
+      <AnimatePresence>
+        {messageModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" style={{ zIndex: 1003 }} onClick={() => !isSubmitting && setMessageModal(null)}>
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="modal" style={{ maxWidth: '450px' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-sm)', background: 'rgba(139, 92, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <MessageSquare size={20} color="var(--primary-400)" />
+                  </div>
+                  <div>
+                    <h3 className="modal-title" style={{ margin: 0 }}>{t('send_telegram_msg') || 'Xabar yuborish'}</h3>
+                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0 }}>
+                       {messageModal.name} (@{messageModal.telegramUsername || messageModal.telegramId})
+                    </p>
+                  </div>
+                </div>
+                <button className="btn btn-icon btn-ghost" onClick={() => setMessageModal(null)}><X size={20} /></button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="input-group">
+                  <label>{t('message_label') || 'Xabar matni'}</label>
+                  <textarea 
+                    className="input" 
+                    style={{ minHeight: '120px', padding: '12px', resize: 'none', background: 'rgba(255,255,255,0.02)' }}
+                    placeholder={t('message_placeholder') || 'Xabar matnini yuboring...'}
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={handleSendMessage} 
+                    disabled={isSubmitting || !messageText.trim()}
+                    style={{ width: '100%' }}
+                  >
+                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <MessageSquare size={18} />}
+                    {isSubmitting ? (t('sending') || 'Yuborilmoqda...') : (t('send') || 'Yuborish')}
+                  </button>
+
+                  <a 
+                    href={messageModal.telegramUsername 
+                      ? `https://t.me/${messageModal.telegramUsername.replace('@', '')}` 
+                      : `https://t.me/${messageModal.telegramId?.replace('@', '')}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ 
+                      textAlign: 'center', 
+                      fontSize: '13px', 
+                      color: 'var(--text-tertiary)', 
+                      textDecoration: 'none',
+                      marginTop: '8px'
+                    }}
+                    className="hover-underline"
+                  >
+                    {t('open_telegram_direct') || 'Telegram ilovasida ochish'}
+                  </a>
+                </div>
               </div>
             </motion.div>
           </motion.div>

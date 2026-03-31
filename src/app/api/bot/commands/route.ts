@@ -23,12 +23,18 @@ export async function POST(request: Request) {
     }
 
     // Telegram API setMyCommands
-    // commands: [{ command: 'start', description: 'Boshlash' }, ...]
+    // Clean commands for Telegram (only command & description allowed)
+    const tgCommands = (commands as any[]).map(c => ({
+      command: c.command,
+      description: c.description
+    }));
+
     const res = await fetch(`https://api.telegram.org/bot${bot.token}/setMyCommands`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ commands })
+      body: JSON.stringify({ commands: tgCommands })
     })
+
 
     const data = await res.json()
 

@@ -58,9 +58,9 @@ export default function BotCommandsPage() {
       } else {
          setCommands([
             { command: 'start', description: 'Botni boshlash', type: 'text', response: '' },
-            { command: 'menu', description: 'Interaktiv boshqaruv menyusi', type: 'action', response: 'menu' },
-            { command: 'sklad', description: 'Omborxonalar ro\'yxati', type: 'action', response: 'sklad' },
-            { command: 'yordam', description: 'Yordam va qo\'llanma', type: 'text', response: '' }
+            { command: 'sklad', description: 'Omborxonalar ro\'yxati (Qidiruv)', type: 'action', response: 'sklad' },
+            { command: 'help', description: 'Yordam va kontaktlar', type: 'action', response: 'help' },
+            { command: 'cheking', description: 'Hisobotlarni ko\'rish', type: 'action', response: 'cheking' }
          ])
       }
     } catch (e) {
@@ -415,9 +415,9 @@ export default function BotCommandsPage() {
                             onChange={(e) => handleCommandChange(idx, 'response', e.target.value)}
                           >
                             <option value="">{t('cmd_select_action') || 'Amalni tanlang...'}</option>
-                            <option value="menu">🏠 Interaktiv Menyu</option>
                             <option value="sklad">📦 Omborlar ro'yxati (Qidiruv)</option>
-                            <option value="help">❓ Yordam bo'limi</option>
+                            <option value="help">❓ Yordam bo'limi (Kontaktlar)</option>
+                            <option value="cheking">📋 Hisobot olish</option>
                           </select>
                         )}
 

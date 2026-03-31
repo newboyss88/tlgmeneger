@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     // --- UPSERT TELEGRAM USER ---
     const fromUser = callbackQuery?.from || message.from
-    let tgUserId = null;
+    let tgUserId: string | null = null;
     if (fromUser && !fromUser.is_bot) {
       const tgIdStr = fromUser.id.toString()
       const tgUser = await prisma.telegramUser.upsert({
@@ -69,41 +69,16 @@ export async function POST(request: Request) {
       
       tgUserId = tgUser.id;
 
-      // --- AUTO-LINK TO SYSTEM USER ---
-      if (fromUser.username) {
-        const username = fromUser.username.toLowerCase()
-        // Setting jadvalidan ushbu username-li foydalanuvchilarni qidiramiz
-        const userSettings = await prisma.setting.findMany({
-          where: {
-            key: 'telegramUsername',
-            value: { contains: username } // Ikkala ko'rinishda ham qidiradi (@ bilan yoki siz)
-          }
-        })
-
-        for (const setting of userSettings) {
-          let storedUsername = setting.value.trim().toLowerCase()
-          if (storedUsername.startsWith('@')) storedUsername = storedUsername.substring(1)
-          
-          if (storedUsername === username) {
-            await prisma.user.update({
-              where: { id: setting.userId },
-              data: { telegramId: tgIdStr }
-            })
-          }
-        }
-      }
-
       if (tgUser.isBanned) {
         if (chatType === 'private' && !callbackQuery) {
-           await sendTelegramMessage(botToken, chatId, '\u26d4 Siz bloklangansiz.')
+           await sendTelegramMessage(botToken, chatId, '⛔ Siz bloklangansiz.', undefined, undefined, bot.id, tgUserId);
         }
         return NextResponse.json({ ok: true })
       }
     }
 
-    // LINGUISTIC SETTINGS - Priority: Group Config > Bot Config > Default
+    // LINGUISTIC SETTINGS
     let lng: 'uz' | 'ru' | 'en' = (bot.language as 'uz' | 'ru' | 'en') || 'uz';
-    
     if (chatType === 'group' || chatType === 'supergroup') {
        const group = bot.groups.find((g: any) => String(g.chatId) === String(chatId));
        if (group && group.language) {
@@ -113,58 +88,64 @@ export async function POST(request: Request) {
     
     const dict = {
       uz: {
-        autoDeduct: 'Avto-chiqim', product: 'Mahsulot', deduct: 'Chiqim', income: 'Kirim', newBalance: 'Yangi qoldiq',
-        statusLow: 'Yana kam qoldi!', statusOk: 'Yetarli', needQtyMsg: 'Chiqim uchun aniq nom va sonni yozing. Masalan: "{name} 1ta"',
-        price: 'Narx', balance: 'Qoldiq',
-        product_not_found: '\u274c Bunday mahsulot (yoki SKU) omborda topilmadi. Nomini yoki SKU kodini tekshirib qaytadan urinib ko\'ring.',
-        multiple_products_found: '\ud83e\udd14 Quyidagi mahsulotlardan qaysi birini nazarda tutdingiz?',
-        select_warehouse: '\ud83c\udfe2 Qaysi ombordan amaliyot bajaramiz?',
-        select_product: '\ud83d\udce6 Qaysi mahsulotni tanlaysiz?',
+        newBalance: 'Yangi qoldiq', statusLow: 'Yana kam qoldi!', statusOk: 'Yetarli',
+        needQtyMsg: 'Chiqim uchun aniq nom va sonni yozing. Masalan: "{name} 1ta"',
+        price: 'Narx', balance: 'Qoldiq', product: 'Mahsulot',
+        product_not_found: '❌ Bunday mahsulot (yoki SKU) omborda topilmadi.',
+        multiple_products_found: '🤔 Quyidagi mahsulotlardan qaysi birini nazarda tutdingiz?',
+        select_warehouse: '🏢 Qaysi ombordan amaliyot bajaramiz?',
+        select_product: '📦 Qaysi mahsulotni tanlaysiz?',
+        select_period: '📅 Hisobot davrini tanlang:',
         select_quantity: 'Nechta chiqim (yoki kirim) qilasiz?',
-        back: '\u25c0\ufe0f Ortga', cancel: 'Bekor qilish',
-        also_found: 'Xuddi shunday yana {count} ta mahsulot bor. Aniq ismini yozing.',
-        help_text: '\ud83e\udd16 *Bot buyruqlari:*\n\n/menu \u2014 \ud83d\udd79 Interaktiv boshqaruv menyusi\n/sklad \u2014 \ud83c\udfe2 Omborxonalar ro\'yxati\n\n\ud83d\udcdd Guruhda aniq mahsulot nomi yoki SKU bilan chiqim qiling.\nMasalan: "HP-CF217A 1ta"',
-        operation_success: '\u2705 Operatsiya muvaffaqiyatli:',
-        who_to: 'Kimga',
-        who_to_prompt: 'Iltimos, ushbu chiqim kimga yoki qayerga qilinayotganini yozib yuboring (shu xabarga javob qilib):',
-        code: 'Kod',
-        units: { dona: 'dona', kg: 'kg', metr: 'm', litr: 'l' }
+        back: '⬅️ Ortga', cancel: 'Bekor qilish',
+        help_text: '🤖 *Yordam va kontaktlar:*',
+        admin_email: '📧 Pochta:', admin_tg: '📡 Telegram:',
+        report_title: '📋 *Sklad Hisoboti*',
+        report_empty: '📭 Ushbu davr uchun amaliyotlar topilmadi.',
+        period_1: '1 oylik', period_2: '2 oylik', period_3: '3 oylik',
+        units: { dona: 'dona', kg: 'kg', metr: 'm', litr: 'l' },
+        deduct: 'Chiqim', income: 'Kirim', operation_success: 'Muvaffaqiyatli',
+        who_to_prompt: 'Kimga qilinayotganini yozing:', who_to: 'Kimga', code: 'Kod', autoDeduct: 'Avto-chiqim', also_found: 'Yana {count} ta topildi'
       },
       ru: {
-        autoDeduct: '\u0410\u0432\u0442\u043e-\u0441\u043f\u0438\u0441\u0430\u043d\u0438\u0435', product: '\u0422\u043e\u0432\u0430\u0440', deduct: '\u0421\u043f\u0438\u0441\u0430\u043d\u0438\u0435', income: '\u041f\u0440\u0438\u0445\u043e\u0434', newBalance: '\u041d\u043e\u0432\u044b\u0439 \u043e\u0441\u0442\u0430\u0442\u043e\u043a',
-        statusLow: '\u041c\u0430\u043b\u043e \u0432 \u043d\u0430\u043b\u0438\u0447\u0438\u0438!', statusOk: '\u0414\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e', needQtyMsg: '\u0414\u043b\u044f \u0441\u043f\u0438\u0441\u0430\u043d\u0438\u044f \u0443\u043a\u0430\u0436\u0438\u0442\u0435 \u0442\u043e\u0447\u043d\u043e\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u0438 \u043a\u043e\u043b-\u0432\u043e. \u041d\u0430\u043f\u0440\u0438\u043c\u0435\u0440: "{name} 1\u0448\u0442"',
-        price: '\u0426\u0435\u043d\u0430', balance: '\u041e\u0441\u0442\u0430\u0442\u043e\u043a',
-        product_not_found: '\u274c \u0422\u0430\u043a\u043e\u0439 \u0442\u043e\u0432\u0430\u0440 (\u0438\u043b\u0438 \u0430\u0440\u0442\u0438\u043a\u0443\u043b) \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d \u043d\u0430 \u0441\u043a\u043b\u0430\u0434\u0435. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u043f\u0440\u0430\u0432\u0438\u043b\u044c\u043d\u043e\u0441\u0442\u044c \u043d\u0430\u043f\u0438\u0441\u0430\u043d\u0438\u044f.',
-        multiple_products_found: '\ud83e\udd14 \u041a\u0430\u043a\u043e\u0439 \u0438\u043c\u0435\u043d\u043d\u043e \u0438\u0437 \u044d\u0442\u0438\u0445 \u0442\u043e\u0432\u0430\u0440\u043e\u0432 \u0432\u044b \u0438\u043c\u0435\u043b\u0438 \u0432 \u0432\u0438\u0434\u0443?',
-        select_warehouse: '\ud83c\udfe2 \u0421 \u043a\u0430\u043a\u0438\u043c \u0441\u043a\u043b\u0430\u0434\u043e\u043c \u0431\u0443\u0434\u0435\u043c \u0440\u0430\u0431\u043e\u0442\u0430\u0442\u044c?',
-        select_product: '\ud83d\udce6 \u041a\u0430\u043a\u043e\u0439 \u043f\u0440\u043e\u0434\u0443\u043a\u0442 \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435?',
-        select_quantity: '\u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u043a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u043e \u0434\u043b\u044f \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u0438:',
-        back: '\u25c0\ufe0f \u041d\u0430\u0437\u0430\u0434', cancel: '\u041e\u0442\u043c\u0435\u043d\u0430',
-        also_found: '\u0422\u0430\u043a\u0436\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e \u0435\u0449\u0451 {count} \u0442\u043e\u0432\u0430\u0440(\u043e\u0432). \u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u0442\u043e\u0447\u043d\u043e\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435.',
-        help_text: '\ud83e\udd16 *\u041a\u043e\u043c\u0430\u043d\u0434\u044b \u0431\u043e\u0442\u0430:*\n\n/menu \u2014 \ud83d\udd79 \u0418\u043d\u0442\u0435\u0440\u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0435 \u043c\u0435\u043d\u044e \u0443\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u044f\n/sklad \u2014 \ud83c\udfe2 \u0421\u043f\u0438\u0441\u043e\u043a \u0441\u043a\u043b\u0430\u0434\u043e\u0432\n\n\ud83d\udcdd \u0414\u043b\u044f \u0441\u043f\u0438\u0441\u0430\u043d\u0438\u044f \u0443\u043a\u0430\u0436\u0438\u0442\u0435 \u0442\u043e\u0447\u043d\u043e\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u0438\u043b\u0438 \u0430\u0440\u0442\u0438\u043a\u0443\u043b \u0442\u043e\u0432\u0430\u0440\u0430.\n\u041f\u0440\u0438\u043c\u0435\u0440: "HP-CF217A 1\u0448\u0442"',
-        operation_success: '\u2705 \u041e\u043f\u0435\u0440\u0430\u0446\u0438\u044f \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0430:',
-        who_to: 'Кому / Куда',
-        who_to_prompt: 'Пожалуйста, напишите, кому или куда производится это списание (добавьте как ответ на это сообщение):',
-        code: 'Код',
-        units: { dona: 'шт.', kg: 'кг', metr: 'м', litr: 'л' }
+        newBalance: 'Новый остаток', statusLow: 'Мало в наличии!', statusOk: 'Достаточно',
+        needQtyMsg: 'Для списания укажите название и кол-во. Например: "{name} 1шт"',
+        price: 'Цена', balance: 'Остаток', product: 'Товар',
+        product_not_found: '❌ Такой товар не найден.',
+        multiple_products_found: '🤔 Какой именно из этих товаров вы имели в виду?',
+        select_warehouse: '🏢 С каким складом будем работать?',
+        select_product: '📦 Какой продукт выберите?',
+        select_period: '📅 Выберите период отчета:',
+        select_quantity: 'Укажите количество для операции:',
+        back: '⬅️ Назад', cancel: 'Отмена',
+        help_text: '🤖 *Помощь и контакты:*',
+        admin_email: '📧 Почта:', admin_tg: '📡 Телеграм:',
+        report_title: '📋 *Отчет по Складу*',
+        report_empty: '📭 Операций за этот период не найдено.',
+        period_1: '1 месяц', period_2: '2 месяца', period_3: '3 месяца',
+        units: { dona: 'шт.', kg: 'кг', metr: 'м', litr: 'л' },
+        deduct: 'Списание', income: 'Приход', operation_success: 'Успешно',
+        who_to_prompt: 'Напишите кому:', who_to: 'Кому', code: 'Код', autoDeduct: 'Авто-списание', also_found: 'Найдено еще {count}'
       },
       en: {
-        autoDeduct: 'Auto-deduction', product: 'Product', deduct: 'Deducted', income: 'Added', newBalance: 'New balance',
-        statusLow: 'Running low!', statusOk: 'In stock', needQtyMsg: 'To deduct, specify the exact name and quantity. E.g: "{name} 1pcs"',
-        price: 'Price', balance: 'Balance',
-        product_not_found: '\u274c Such a product (or SKU) was not found in the warehouse. Please check the spelling.',
-        multiple_products_found: '\ud83e\udd14 Which of the following products did you mean?',
-        select_warehouse: '\ud83c\udfe2 Which warehouse would you like to operate in?',
-        select_product: '\ud83d\udce6 Which product do you want to select?',
-        select_quantity: 'Please specify the quantity:',
-        back: '\u25c0\ufe0f Back', cancel: 'Cancel',
-        also_found: 'There are also {count} more product(s) found. Please specify the exact name.',
-        help_text: '\ud83e\udd16 *Bot commands:*\n\n/menu \u2014 \ud83d\udd79 Interactive control menu\n/sklad \u2014 \ud83c\udfe2 Warehouse list\n\n\ud83d\udcdd To deduct, type the exact product name or SKU with quantity.\nExample: "HP-CF217A 1pcs"',
-        operation_success: '\u2705 Operation completed:',
-        who_to: 'To whom',
-        who_to_prompt: 'Please write to whom or where this deduction is being made (reply to this message):',
-        code: 'Code',
-        units: { dona: 'pcs', kg: 'kg', metr: 'm', litr: 'l' }
+        newBalance: 'New balance', statusLow: 'Running low!', statusOk: 'In stock',
+        needQtyMsg: 'To deduct, specify name and quantity. E.g: "{name} 1pcs"',
+        price: 'Price', balance: 'Balance', product: 'Product',
+        product_not_found: '❌ Product not found.',
+        multiple_products_found: '🤔 Which product did you mean?',
+        select_warehouse: '🏢 Which warehouse to operate in?',
+        select_product: '📦 Which product to select?',
+        select_period: '📅 Select report period:',
+        select_quantity: 'Specify the quantity:',
+        back: '⬅️ Back', cancel: 'Cancel',
+        help_text: '🤖 *Help & Contacts:*',
+        admin_email: '📧 Email:', admin_tg: '📡 Telegram:',
+        report_title: '📋 *Warehouse Report*',
+        report_empty: '📭 No operations found for this period.',
+        period_1: '1 month', period_2: '2 months', period_3: '3 months',
+        units: { dona: 'pcs', kg: 'kg', metr: 'm', litr: 'l' },
+        deduct: 'Deduction', income: 'Income', operation_success: 'Success',
+        who_to_prompt: 'Write to whom:', who_to: 'To', code: 'Code', autoDeduct: 'Auto-deduction', also_found: '{count} more found'
       }
     };
     const t = dict[lng] || dict['uz'];
@@ -173,7 +154,6 @@ export async function POST(request: Request) {
       w.products.map((p: any) => ({ ...p, warehouseName: w.name, warehouseId: w.id }))
     );
     
-    // Helper to format unit
     const fUnit = (unit: string) => (t as any).units?.[unit] || unit;
 
     // ==========================================
@@ -183,9 +163,62 @@ export async function POST(request: Request) {
       const data = callbackQuery.data;
       
       if (data === 'menu') {
-        const buttons = bot.warehouses.map((w: any) => [{ text: `\ud83c\udfe2 ${w.name}`, callback_data: `wh_${w.id}` }]);
-        await sendTelegramMessage(botToken, chatId, `*${t.select_warehouse}*`, 'Markdown', { inline_keyboard: buttons });
+        const buttons = bot.warehouses.map((w: any) => [{ text: `🏢 ${w.name}`, callback_data: `wh_${w.id}` }]);
+        await sendTelegramMessage(botToken, chatId, `*${t.select_warehouse}*`, 'Markdown', { inline_keyboard: buttons }, bot.id, tgUserId || undefined);
         return NextResponse.json({ ok: true })
+      }
+
+      if (data.startsWith('rpt_wh_')) {
+        const whId = data.replace('rpt_wh_', '');
+        const buttons = [
+          [{ text: `📅 ${t.period_1}`, callback_data: `rpt_pd_1_${whId}` }],
+          [{ text: `📅 ${t.period_2}`, callback_data: `rpt_pd_2_${whId}` }],
+          [{ text: `📅 ${t.period_3}`, callback_data: `rpt_pd_3_${whId}` }],
+          [{ text: t.back, callback_data: 'rpt_menu' }]
+        ];
+        await sendTelegramMessage(botToken, chatId, `*${t.select_period}*`, 'Markdown', { inline_keyboard: buttons }, bot.id, tgUserId || undefined);
+        return NextResponse.json({ ok: true });
+      }
+
+      if (data === 'rpt_menu') {
+          const buttons = bot.warehouses.map((w: any) => [{ text: `🏢 ${w.name}`, callback_data: `rpt_wh_${w.id}` }]);
+          await sendTelegramMessage(botToken, chatId, `*${t.select_warehouse}*`, 'Markdown', { inline_keyboard: buttons }, bot.id, tgUserId || undefined);
+          return NextResponse.json({ ok: true });
+      }
+
+      if (data.startsWith('rpt_pd_')) {
+        const parts = data.split('_');
+        const months = parseInt(parts[2]);
+        const whId = parts[3];
+        
+        const startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - months);
+
+        const wh = bot.warehouses.find((w: any) => w.id === whId);
+        const productIds = wh ? wh.products.map((p: any) => p.id) : [];
+
+        const transactions = await prisma.transaction.findMany({
+          where: {
+            productId: { in: productIds },
+            createdAt: { gte: startDate }
+          },
+          include: { product: true },
+          orderBy: { createdAt: 'desc' },
+          take: 50
+        });
+
+        if (transactions.length === 0) {
+           await sendTelegramMessage(botToken, chatId, t.report_empty, 'Markdown', undefined, bot.id, tgUserId || undefined);
+        } else {
+           let report = `${t.report_title} (${wh?.name})\n\n`;
+           transactions.forEach(tr => {
+              const date = new Date(tr.createdAt).toLocaleDateString();
+              const typeChar = tr.type === 'IN' ? '📈' : '📉';
+              report += `${date} | ${typeChar} ${tr.quantity} ${tr.product.unit} | ${tr.product.name}\n`;
+           });
+           await sendTelegramMessage(botToken, chatId, report, 'Markdown', undefined, bot.id, tgUserId || undefined);
+        }
+        return NextResponse.json({ ok: true });
       }
 
       if (data.startsWith('wh_')) {
@@ -193,10 +226,10 @@ export async function POST(request: Request) {
         const wh = bot.warehouses.find((w: any) => w.id === wId);
         if (wh) {
             const buttons = wh.products.slice(0, 50).map((p: any) => [
-              { text: `\ud83d\udce6 ${p.name}${p.sku ? ` - ${p.sku}` : ''} (${p.quantity} ${fUnit(p.unit)})`, callback_data: `pr_${p.id}` }
+              { text: `📦 ${p.name}${p.sku ? ` - ${p.sku}` : ''} (${p.quantity} ${fUnit(p.unit)})`, callback_data: `pr_${p.id}` }
             ]);
             buttons.push([{ text: t.back, callback_data: 'menu' }]);
-            await sendTelegramMessage(botToken, chatId, `*${wh.name}*\n\n${t.select_product}`, 'Markdown', { inline_keyboard: buttons });
+            await sendTelegramMessage(botToken, chatId, `*${wh.name}*\n\n${t.select_product}`, 'Markdown', { inline_keyboard: buttons }, bot.id, tgUserId || undefined);
         }
         return NextResponse.json({ ok: true })
       }
@@ -207,19 +240,19 @@ export async function POST(request: Request) {
         if (pr) {
             const buttons = [
               [
-                { text: `\ud83d\udcc9 -1`, callback_data: `act_out_1_${pr.id}` },
-                { text: `\ud83d\udcc9 -2`, callback_data: `act_out_2_${pr.id}` },
-                { text: `\ud83d\udcc9 -3`, callback_data: `act_out_3_${pr.id}` }
+                { text: `📉 -1`, callback_data: `act_out_1_${pr.id}` },
+                { text: `📉 -2`, callback_data: `act_out_2_${pr.id}` },
+                { text: `📉 -3`, callback_data: `act_out_3_${pr.id}` }
               ],
               [
-                { text: `\ud83d\udcc8 +1`, callback_data: `act_in_1_${pr.id}` },
-                { text: `\ud83d\udcc8 +2`, callback_data: `act_in_2_${pr.id}` },
-                { text: `\ud83d\udcc8 +3`, callback_data: `act_in_3_${pr.id}` }
+                { text: `📈 +1`, callback_data: `act_in_1_${pr.id}` },
+                { text: `📈 +2`, callback_data: `act_in_2_${pr.id}` },
+                { text: `📈 +3`, callback_data: `act_in_3_${pr.id}` }
               ],
               [{ text: t.back, callback_data: `wh_${pr.warehouseId}` }]
             ];
-            const msg = `\ud83d\udcf1 *${pr.name}*\n\ud83c\udfe2 ${pr.warehouseName}\n\ud83d\udce6 ${t.balance}: *${pr.quantity}* ${fUnit(pr.unit)}\n\n${t.select_quantity}`;
-            await sendTelegramMessage(botToken, chatId, msg, 'Markdown', { inline_keyboard: buttons });
+            const msg = `📱 *${pr.name}*\n🏢 ${pr.warehouseName}\n📦 ${t.balance}: *${pr.quantity}* ${fUnit(pr.unit)}\n\n${t.select_quantity}`;
+            await sendTelegramMessage(botToken, chatId, msg, 'Markdown', { inline_keyboard: buttons }, bot.id, tgUserId || undefined);
         }
         return NextResponse.json({ ok: true })
       }
@@ -235,8 +268,8 @@ export async function POST(request: Request) {
             const actualQty = type === 'OUT' ? Math.min(pr.quantity, qty) : qty;
             
             if (type === 'OUT') {
-               const replyMsg = `\ud83d\udcc9 ${t.deduct}: *${actualQty}* ${fUnit(pr.unit)}\n\ud83d\udce6 ${t.product}: *${pr.name}*\n\n\ud83d\udc47 ${t.who_to_prompt}\n\n💬 ${t.code}: OUT-${actualQty}-${pr.id}`;
-               await sendTelegramMessage(botToken, chatId, replyMsg, 'Markdown', { force_reply: true });
+               const replyMsg = `📉 ${t.deduct}: *${actualQty}* ${fUnit(pr.unit)}\n📦 ${t.product}: *${pr.name}*\n\n👇 ${t.who_to_prompt}\n\n💬 ${t.code}: OUT-${actualQty}-${pr.id}`;
+               await sendTelegramMessage(botToken, chatId, replyMsg, 'Markdown', { force_reply: true }, bot.id, tgUserId || undefined);
                return NextResponse.json({ ok: true });
             }
 
@@ -257,9 +290,9 @@ export async function POST(request: Request) {
               }
             });
 
-            const status = newQuantity <= pr.minQuantity ? `\ud83d\udd34 ${t.statusLow}` : `\ud83d\udfe2 ${t.statusOk}`;
-            const msg = `${t.operation_success}\n\ud83d\udcf1 ${t.product}: *${pr.name}*\n\ud83d\udcc8 ${t.income}: *${actualQty}* ${fUnit(pr.unit)}\n\ud83d\udce6 ${t.newBalance}: *${newQuantity}* ${fUnit(pr.unit)}\n${status}`;
-            await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
+            const status = newQuantity <= pr.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
+            const msg = `✅ ${t.operation_success}\n📱 ${t.product}: *${pr.name}*\n📈 ${t.income}: *${actualQty}* ${fUnit(pr.unit)}\n📦 ${t.newBalance}: *${newQuantity}* ${fUnit(pr.unit)}\n${status}`;
+            await sendTelegramMessage(botToken, chatId, msg, 'Markdown', undefined, bot.id, tgUserId || undefined);
         }
         return NextResponse.json({ ok: true })
       }
@@ -290,8 +323,8 @@ export async function POST(request: Request) {
                   }
                 });
                 const status = newQuantity <= pr.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
-                const msg = `${t.operation_success}\n📱 ${t.product}: *${pr.name}*\n📉 ${t.deduct}: *${qty}* ${fUnit(pr.unit)}\n👤 ${t.who_to}: *${noteText}*\n📦 ${t.newBalance}: *${newQuantity}* ${fUnit(pr.unit)}\n${status}`;
-                await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
+                const msg = `✅ ${t.operation_success}\n📱 ${t.product}: *${pr.name}*\n📉 ${t.deduct}: *${qty}* ${fUnit(pr.unit)}\n👤 ${t.who_to}: *${noteText}*\n📦 ${t.newBalance}: *${newQuantity}* ${fUnit(pr.unit)}\n${status}`;
+                await sendTelegramMessage(botToken, chatId, msg, 'Markdown', undefined, bot.id, tgUserId || undefined);
             }
             return NextResponse.json({ ok: true });
         }
@@ -299,10 +332,29 @@ export async function POST(request: Request) {
 
     if (!text) return NextResponse.json({ ok: true });
 
-    if (text === '/start' || text === '/yordam' || text === '/help' || text.startsWith('/')) {
+    if (text === '/start' || text === '/help' || text === '/cheking' || text === '/sklad' || text.startsWith('/')) {
       const commandName = text.replace('/', '');
       
-      // Try to find custom response in bot.settings
+      if (commandName === 'cheking') {
+          const buttons = bot.warehouses.map((w: any) => [{ text: `🏢 ${w.name}`, callback_data: `rpt_wh_${w.id}` }]);
+          await sendTelegramMessage(botToken, chatId, `*${t.select_warehouse}*`, 'Markdown', { inline_keyboard: buttons }, bot.id, tgUserId || undefined);
+          return NextResponse.json({ ok: true });
+      }
+
+      if (commandName === 'help') {
+          const superAdmin = await prisma.user.findFirst({ 
+            where: { role: 'SUPER_ADMIN' },
+            include: { settings: true }
+          });
+          const adminEmail = superAdmin?.email || 'admin@example.com';
+          const tgSetting = superAdmin?.settings.find(s => s.key === 'telegramUsername');
+          const adminTg = tgSetting ? (tgSetting.value.startsWith('@') ? tgSetting.value : `@${tgSetting.value}`) : '@admin';
+          
+          const helpMsg = `${t.help_text}\n\n${t.admin_email} ${adminEmail}\n${t.admin_tg} ${adminTg}`;
+          await sendTelegramMessage(botToken, chatId, helpMsg, 'Markdown', undefined, bot.id, tgUserId || undefined);
+          return NextResponse.json({ ok: true });
+      }
+
       if (bot.settings) {
          try {
             const settings = JSON.parse(bot.settings);
@@ -314,50 +366,50 @@ export async function POST(request: Request) {
                const response = customCmd.response;
 
                if (cmdType === 'text' && response && commandName !== 'start') {
-                  await sendTelegramMessage(botToken, chatId, response, 'Markdown');
+                  await sendTelegramMessage(botToken, chatId, response, 'Markdown', undefined, bot.id, tgUserId || undefined);
                   return NextResponse.json({ ok: true });
                }
 
                if (cmdType === 'link' && response) {
-                  const label = customCmd.description || t.product || 'Link';
-                  const buttons = [[{ text: `\ud83c\udf10 ${label}`, url: response.startsWith('http') ? response : `https://tlgmeneger.vercel.app${response}` }]];
-                  await sendTelegramMessage(botToken, chatId, `*${label}*`, 'Markdown', { inline_keyboard: buttons });
+                  const label = customCmd.description || 'Link';
+                  const buttons = [[{ text: `🌐 ${label}`, url: response.startsWith('http') ? response : `https://tlgmeneger.vercel.app${response}` }]];
+                  await sendTelegramMessage(botToken, chatId, `*${label}*`, 'Markdown', { inline_keyboard: buttons }, bot.id, tgUserId || undefined);
                   return NextResponse.json({ ok: true });
                }
 
                if (cmdType === 'action' && response) {
                   if (response === 'menu' || response === 'sklad') {
-                     const buttons = bot.warehouses.map((w: any) => [{ text: `\ud83c\udfe2 ${w.name}`, callback_data: `wh_${w.id}` }]);
-                     await sendTelegramMessage(botToken, chatId, `*${t.select_warehouse}*`, 'Markdown', { inline_keyboard: buttons });
+                     const buttons = bot.warehouses.map((w: any) => [{ text: `🏢 ${w.name}`, callback_data: `wh_${w.id}` }]);
+                     await sendTelegramMessage(botToken, chatId, `*${t.select_warehouse}*`, 'Markdown', { inline_keyboard: buttons }, bot.id, tgUserId || undefined);
                      return NextResponse.json({ ok: true });
                   }
                   if (response === 'help') {
-                     await sendTelegramMessage(botToken, chatId, t.help_text, 'Markdown');
+                     const superAdmin = await prisma.user.findFirst({ 
+                        where: { role: 'SUPER_ADMIN' },
+                        include: { settings: true }
+                     });
+                     const adminEmail = superAdmin?.email || 'admin@example.com';
+                     const tgSetting = superAdmin?.settings.find(s => s.key === 'telegramUsername');
+                     const adminTg = tgSetting ? (tgSetting.value.startsWith('@') ? tgSetting.value : `@${tgSetting.value}`) : '@admin';
+                     const helpMsg = `${t.help_text}\n\n${t.admin_email} ${adminEmail}\n${t.admin_tg} ${adminTg}`;
+                     await sendTelegramMessage(botToken, chatId, helpMsg, 'Markdown', undefined, bot.id, tgUserId || undefined);
                      return NextResponse.json({ ok: true });
                   }
                }
             }
-         } catch(e) {
-            console.error('Webhook settings parse error:', e);
-         }
+         } catch(e) {}
       }
 
-      // Default logic for /start
       if (text === '/start') {
-        await sendTelegramMessage(botToken, chatId, bot.welcomeMessage || t.help_text, 'Markdown');
+        const welcome = bot.welcomeMessage || 'Xush kelibsiz!';
+        await sendTelegramMessage(botToken, chatId, welcome, 'Markdown', undefined, bot.id, tgUserId || undefined);
         return NextResponse.json({ ok: true });
-      }
-
-      // Default logic for /help
-      if (text === '/yordam' || text === '/help') {
-         await sendTelegramMessage(botToken, chatId, t.help_text, 'Markdown');
-         return NextResponse.json({ ok: true });
       }
     }
 
     if (text === '/menu' || text === '/sklad') {
-       const buttons = bot.warehouses.map((w: any) => [{ text: `\ud83c\udfe2 ${w.name}`, callback_data: `wh_${w.id}` }]);
-       await sendTelegramMessage(botToken, chatId, `*${t.select_warehouse}*`, 'Markdown', { inline_keyboard: buttons });
+       const buttons = bot.warehouses.map((w: any) => [{ text: `🏢 ${w.name}`, callback_data: `wh_${w.id}` }]);
+       await sendTelegramMessage(botToken, chatId, `*${t.select_warehouse}*`, 'Markdown', { inline_keyboard: buttons }, bot.id, tgUserId || undefined);
        return NextResponse.json({ ok: true })
     }
 
@@ -373,7 +425,7 @@ export async function POST(request: Request) {
     if (canProcessText && !text.startsWith('/')) {
         const numMatch = text.match(/(\d+)/);
         const qtyToSubtract = numMatch ? parseInt(numMatch[1], 10) : 0;
-        const nameQuery = text.replace(/\d+/g, '').replace(/(ta|sht|\u0448\u0442|dona|d|pcs|\u0448\u0442\u0443\u043a\u0438|\u0448\u0442\u0443\u043a)/gi, '').replace(/[?!.,\-]/g, ' ').trim().toLowerCase();
+        const nameQuery = text.replace(/\d+/g, '').replace(/(ta|sht|шт|dona|d|pcs|штуки|штук)/gi, '').replace(/[?!.,\-]/g, ' ').trim().toLowerCase();
 
         if (nameQuery.length > 2) {
             const found = allProducts.filter((p: any) => 
@@ -382,7 +434,7 @@ export async function POST(request: Request) {
             );
 
             if (found.length === 0 && qtyToSubtract > 0) {
-               await sendTelegramMessage(botToken, chatId, t.product_not_found);
+               await sendTelegramMessage(botToken, chatId, t.product_not_found, undefined, undefined, bot.id, tgUserId || undefined);
             } else if (found.length === 1 && qtyToSubtract > 0) {
                const product = found[0];
                const actualDeduct = qtyToSubtract;
@@ -403,19 +455,18 @@ export async function POST(request: Request) {
                  }
                });
 
-               const status = newQuantity <= product.minQuantity ? `\ud83d\udd34 ${t.statusLow}` : `\ud83d\udfe2 ${t.statusOk}`;
-               const msg = `\u2705 *${t.autoDeduct}:*\n\ud83d\udcf1 ${t.product}: *${product.name}*\n\ud83d\udce6 ${t.deduct}: *${actualDeduct}* ${product.unit}\n\ud83d\udcc9 ${t.newBalance}: *${newQuantity}* ${product.unit}\n${status}`;
-               await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
+               const status = newQuantity <= product.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
+               const msg = `✅ *${t.autoDeduct}:*\n📱 ${t.product}: *${product.name}*\n📉 ${t.deduct}: *${actualDeduct}* ${product.unit}\n📦 ${t.newBalance}: *${newQuantity}* ${product.unit}\n${status}`;
+               await sendTelegramMessage(botToken, chatId, msg, 'Markdown', undefined, bot.id, tgUserId || undefined);
             } else if (found.length > 1 && qtyToSubtract > 0) {
                const buttons = found.slice(0, 8).map((p: any) => [{ text: `${p.name} (${t.balance}: ${p.quantity})`, callback_data: `act_out_${qtyToSubtract}_${p.id}` }]);
-               await sendTelegramMessage(botToken, chatId, `*${t.multiple_products_found}*`, 'Markdown', { inline_keyboard: buttons });
+               await sendTelegramMessage(botToken, chatId, `*${t.multiple_products_found}*`, 'Markdown', { inline_keyboard: buttons }, bot.id, tgUserId || undefined);
             } else if (found.length > 0 && qtyToSubtract === 0) {
                const product = found[0];
-               const status = product.quantity <= product.minQuantity ? `\ud83d\udd34 ${t.statusLow}` : `\ud83d\udfe2 ${t.statusOk}`;
-               let msg = `\ud83d\udcf1 *${product.name}*\n\ud83d\udce6 ${t.balance}: *${product.quantity}* ${product.unit}\n\ud83d\udcb0 ${t.price}: ${new Intl.NumberFormat('uz-UZ').format(product.price)}\n${status}`;
-               if (found.length > 1) msg += `\n\n_(${t.also_found.replace('{count}', String(found.length - 1))})_`;
-               msg += `\n\n_\ud83d\udca1 ${t.needQtyMsg.replace('{name}', product.name)}_`;
-               await sendTelegramMessage(botToken, chatId, msg, 'Markdown');
+               const status = product.quantity <= product.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
+               let msg = `📱 *${product.name}*\n📦 ${t.balance}: *${product.quantity}* ${product.unit}\n💰 ${t.price}: ${new Intl.NumberFormat('uz-UZ').format(product.price)}\n${status}`;
+               msg += `\n\n_💡 ${t.needQtyMsg.replace('{name}', product.name)}_`;
+               await sendTelegramMessage(botToken, chatId, msg, 'Markdown', undefined, bot.id, tgUserId || undefined);
             }
         }
     }
@@ -427,9 +478,25 @@ export async function POST(request: Request) {
   }
 }
 
-async function sendTelegramMessage(token: string, chatId: number, text: string, parseMode?: string, replyMarkup?: any) {
+async function sendTelegramMessage(token: string, chatId: number, text: string, parseMode?: string, replyMarkup?: any, botId?: string, tgUserId?: string) {
   try {
-    const payload: any = { chat_id: chatId, text: text || "Noma'lum xato..." };
+    if (botId && tgUserId) {
+       const user = await prisma.telegramUser.findUnique({ where: { id: tgUserId } });
+       if (user?.sessionData) {
+          try {
+             const session = JSON.parse(user.sessionData);
+             if (session.lastMessageId) {
+                await fetch(`https://api.telegram.org/bot${token}/deleteMessage`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ chat_id: chatId, message_id: session.lastMessageId }),
+                }).catch(() => {});
+             }
+          } catch(e) {}
+       }
+    }
+
+    const payload: any = { chat_id: chatId, text: text || "Xatolik..." };
     if (parseMode) payload.parse_mode = parseMode;
     if (replyMarkup) payload.reply_markup = replyMarkup;
 
@@ -438,8 +505,21 @@ async function sendTelegramMessage(token: string, chatId: number, text: string, 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    return await res.json()
+    const data = await res.json();
+    
+    if (data.ok && data.result?.message_id && botId && tgUserId) {
+       const user = await prisma.telegramUser.findUnique({ where: { id: tgUserId } });
+       let session = {};
+       try { session = JSON.parse(user?.sessionData || '{}'); } catch(e) {}
+       (session as any).lastMessageId = data.result.message_id;
+       await prisma.telegramUser.update({
+         where: { id: tgUserId },
+         data: { sessionData: JSON.stringify(session) }
+       });
+    }
+
+    return data;
   } catch (error) {
-    console.error(`[WEBHOOK] Failed to send message:`, error)
+    console.error(`[WEBHOOK] Failed:`, error)
   }
 }

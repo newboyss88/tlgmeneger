@@ -61,9 +61,8 @@ export default function AnalyticsPage() {
        .catch(console.error)
        
     fetchData()
-  }, []) // Initial load
+  }, []) 
   
-  // Re-fetch when filters change
   useEffect(() => {
     if (!loading) fetchData()
   }, [selectedBots, selectedDate])
@@ -87,9 +86,9 @@ export default function AnalyticsPage() {
   }
 
   const tDict = {
-     uz: { report: 'Hisobot', kirim: 'Kirim', chiqim: 'Chiqim', jami: 'Jami', date: 'Sana', user: 'Xodim', product: 'Mahsulot', qty: 'Miqdor', source: 'Manba', sum_ops: 'Jami amaliyotlar', sum_ded: 'Jami chiqim', sum_inc: 'Jami kirim', metric: 'Ko\'rsatkich', val: 'Qiymat' },
-     ru: { report: 'Отчет', kirim: 'Приход', chiqim: 'Расход', jami: 'Итого', date: 'Дата', user: 'Сотрудник', product: 'Товар', qty: 'Кол-во', source: 'Источник', sum_ops: 'Всего операций', sum_ded: 'Всего расход', sum_inc: 'Всего приход', metric: 'Метрика', val: 'Значение' },
-     en: { report: 'Report', kirim: 'Income', chiqim: 'Expense', jami: 'Summary', date: 'Date', user: 'Employee', product: 'Product', qty: 'Quantity', source: 'Source', sum_ops: 'Total Operations', sum_ded: 'Total Expense', sum_inc: 'Total Income', metric: 'Metric', val: 'Value' }
+     uz: { report: 'Hisobot', kirim: 'Kirim', chiqim: 'Chiqim', jami: 'Jami', date: 'Sana', user: 'Xodim', product: 'Mahsulot', qty: 'Miqdor', source: 'Manba', sum_ops: 'Jami amaliyotlar', sum_ded: 'Jami chiqim', sum_inc: 'Jami kirim', metric: 'Ko\'rsatkich', val: 'Qiymat', who_to: 'Kimga / Qayerga' },
+     ru: { report: 'Отчет', kirim: 'Приход', chiqim: 'Расход', jami: 'Итого', date: 'Дата', user: 'Сотрудник', product: 'Товар', qty: 'Кол-во', source: 'Источник', sum_ops: 'Всего операций', sum_ded: 'Всего расход', sum_inc: 'Всего приход', metric: 'Метрика', val: 'Значение', who_to: 'Кому / Куда' },
+     en: { report: 'Report', kirim: 'Income', chiqim: 'Expense', jami: 'Summary', date: 'Date', user: 'Employee', product: 'Product', qty: 'Quantity', source: 'Source', sum_ops: 'Total Operations', sum_ded: 'Total Expense', sum_inc: 'Total Income', metric: 'Metric', val: 'Value', who_to: 'To Whom / Where' }
   }
 
   const executeExport = async () => {
@@ -106,6 +105,7 @@ export default function AnalyticsPage() {
         [dict.product]: tx.productName,
         'SKU': tx.productSku || '',
         [dict.qty]: tx.quantity,
+        [dict.who_to]: tx.note?.replace('KIMGA: ', '') || '-',
         [dict.source]: tx.source
       }))
 
@@ -125,7 +125,6 @@ export default function AnalyticsPage() {
       XLSX.writeFile(wb, `${dict.report}_${new Date().getTime()}.xlsx`)
       toast.success(`Excel ${t('saved_success_msg') || 'Saqlandi!'}`)
     } else {
-      // PDF Export
       const { jsPDF } = await import('jspdf')
       const autoTableModule = await import('jspdf-autotable')
       const autoTable = autoTableModule.default || autoTableModule
@@ -133,7 +132,6 @@ export default function AnalyticsPage() {
       const doc = new jsPDF()
       let fontName = 'helvetica'
       
-      // Cyrillic support required
       try {
         const fontRes = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf')
         const buffer = await fontRes.arrayBuffer()
@@ -146,11 +144,13 @@ export default function AnalyticsPage() {
         console.warn("Could not load cyrillic font", e)
       }
 
-      const head = [[dict.date, dict.user, dict.product, 'SKU', dict.qty, dict.source]]
+      const head = [[dict.date, dict.user, dict.product, 'SKU', dict.qty, dict.who_to, dict.source]]
       
       const getBody = (txs: any[]) => txs.map(t => [
         new Date(t.createdAt).toLocaleString('ru-RU'),
-        t.user, t.productName, t.productSku || '-', t.quantity.toString(), t.source
+        t.user, t.productName, t.productSku || '-', t.quantity.toString(),
+        t.note?.replace('KIMGA: ', '') || '-',
+        t.source
       ])
 
       doc.setFontSize(18)
@@ -187,26 +187,6 @@ export default function AnalyticsPage() {
       toast.success(`PDF ${t('saved_success_msg') || 'Saqlandi!'}`)
     }
     setExportModal(false)
-  }
-
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        padding: '120px 20px', gap: '16px'
-      }}>
-        <div style={{
-          width: '64px', height: '64px', borderRadius: '20px',
-          background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.1))',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Loader2 size={28} style={{ color: 'var(--primary-500)', animation: 'spin 1s linear infinite' }} />
-        </div>
-        <p style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}>
-          {t('loading') || 'Ma\'lumotlar yuklanmoqda...'}
-        </p>
-      </div>
-    )
   }
 
   const filteredLogs = data?.rawTransactions?.filter((t: any) => 
@@ -309,8 +289,8 @@ export default function AnalyticsPage() {
             style={{
               display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px',
               borderRadius: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-              background: 'rgba(245,158,11,0.08)', color: '#F59E0B',
-              border: '1px solid rgba(245,158,11,0.15)', transition: 'all 0.2s'
+              background: 'rgba(244,63,94,0.08)', color: '#F43F5E',
+              border: '1px solid rgba(244,63,94,0.15)', transition: 'all 0.2s'
             }}
           >
             <Trash2 size={15} /> {t('clear_history') || 'Tozalash'}
@@ -333,6 +313,16 @@ export default function AnalyticsPage() {
                  </label>
               ))}
            </div>
+        </div>
+        <div style={{ minWidth: '180px' }}>
+           <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px', fontWeight: 600 }}>Sana boyicha</p>
+           <input 
+              type="date" 
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="input-field"
+              style={{ width: '100%', padding: '6px 12px' }}
+           />
         </div>
       </div>
 
@@ -386,28 +376,8 @@ export default function AnalyticsPage() {
                 animation: 'pulse 2s infinite'
               }} />
               {t('live_log') || 'Jonli Log'}
-              <div style={{ marginLeft: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input 
-                  type="date" 
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  style={{
-                    padding: '4px 8px', borderRadius: '8px', fontSize: '12px',
-                    background: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)',
-                    color: 'var(--text-primary)', cursor: 'pointer', outline: 'none'
-                  }}
-                />
-                {selectedDate && (
-                  <button 
-                    onClick={() => setSelectedDate('')}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '11px' }}
-                  >
-                    {t('clear') || 'Tozalash'}
-                  </button>
-                )}
-              </div>
               <span style={{
-                padding: '2px 8px', borderRadius: '8px', fontSize: '11px',
+                marginLeft: '12px', padding: '2px 8px', borderRadius: '8px', fontSize: '11px',
                 fontWeight: '700', background: 'rgba(16,185,129,0.1)', color: '#10B981'
               }}>
                 {filteredLogs.length}
@@ -437,7 +407,7 @@ export default function AnalyticsPage() {
               <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-secondary)' }}>
-                    {[t('time') || 'Vaqt', t('employee') || 'Xodim', t('product') || 'Mahsulot', t('action') || 'Harakat', t('source') || 'Manba'].map(h => (
+                    {[t('time') || 'Vaqt', t('employee') || 'Xodim', t('product') || 'Mahsulot', t('action') || 'Harakat', 'Kimga / Qayerga', t('source') || 'Manba'].map(h => (
                       <th key={h} style={{
                         padding: '14px 18px', fontSize: '11px', fontWeight: '700',
                         textTransform: 'uppercase', letterSpacing: '0.5px',
@@ -471,6 +441,11 @@ export default function AnalyticsPage() {
                         </span>
                       </td>
                       <td style={{ padding: '14px 18px' }}>
+                        <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '500' }}>
+                           {log.note?.replace('KIMGA: ', '') || '-'}
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 18px' }}>
                         <span style={{
                           padding: '3px 8px', borderRadius: '6px', fontSize: '10px',
                           fontWeight: '600', textTransform: 'uppercase',
@@ -484,7 +459,7 @@ export default function AnalyticsPage() {
                   ))}
                   {filteredLogs.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ padding: '48px 18px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>
+                      <td colSpan={6} style={{ padding: '48px 18px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>
                         {t('no_data') || 'Ma\'lumot topilmadi'}
                       </td>
                     </tr>
@@ -558,7 +533,6 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* System Status */}
           <div style={{
             background: 'linear-gradient(135deg, rgba(124,58,237,0.12), rgba(99,102,241,0.08))',
             borderRadius: '20px', padding: '24px', border: '1px solid rgba(124,58,237,0.12)',
@@ -595,7 +569,10 @@ export default function AnalyticsPage() {
         {showClearConfirm && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
-            className="modal-overlay" 
+            style={{
+              position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}
             onClick={() => !clearing && setShowClearConfirm(false)}
           >
             <motion.div 

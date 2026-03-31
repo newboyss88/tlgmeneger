@@ -60,6 +60,7 @@ model TelegramUser {
   isGroup   Boolean  @default(false) 
   source    String   @default("BOT") 
   isBanned  Boolean  @default(false) 
+  sessionData String?  // JSON string for multi-step states and lastMessageId
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

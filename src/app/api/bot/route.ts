@@ -52,6 +52,14 @@ export async function POST(request: Request) {
         language: language || 'uz',
         isActive: true,
         userId: (session.user as any).id,
+        settings: JSON.stringify({
+          commands: [
+            { command: 'start', type: 'text', response: 'Assalomu alaykum! Botga xush kelibsiz! 🤖' },
+            { command: 'sklad', type: 'action', response: 'sklad' },
+            { command: 'help', type: 'action', response: 'help' },
+            { command: 'cheking', type: 'action', response: 'cheking' }
+          ]
+        })
       },
     })
 

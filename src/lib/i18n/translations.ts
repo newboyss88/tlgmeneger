@@ -434,6 +434,14 @@ export const translations = {
     email_reset_body: 'Siz hisobingiz uchun parolni tiklashni so\'radingiz. Parolni o\'zgartirish uchun quyidagi tugmani bosing:',
     tg_2fa_message: '🔐 *Tasdiqlash Kodi*\n\nSizning kirish kodingiz: `${code}`\n\n_Ushbu kod 10 daqiqa yaroqli._',
     
+    email_2fa_footer: 'Bu kod 10 daqiqa davomida amal qiladi.',
+    email_reset_button: 'Parolni tiklash',
+    email_reset_footer: 'Agar siz parolni tiklashni so\'ramagan bo\'lsangiz, ushbu xatga e\'tibor bermang.',
+    two_factor_auth: 'Ikki bosqichli xavfsizlik (2FA)',
+    enabled: 'Yoqilgan',
+    enable: 'Yoqish',
+    disable: 'O\'chirish',
+
     // API Errors
     api_error_user_not_found: 'Foydalanuvchi topilmadi',
     api_error_invalid_password: 'Parol noto\'g\'ri',
@@ -876,6 +884,14 @@ export const translations = {
     email_reset_body: 'Вы запросили сброс пароля для вашей учетной записи. Нажмите кнопку ниже, чтобы изменить пароль:',
     tg_2fa_message: '🔐 *Код Подтверждения*\n\nВаш код входа: `${code}`\n\n_Этот код действителен 10 минут._',
 
+    email_2fa_footer: 'Этот код действителен в течение 10 минут.',
+    email_reset_button: 'Сбросить пароль',
+    email_reset_footer: 'Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо.',
+    two_factor_auth: 'Двухфакторная аутентификация (2FA)',
+    enabled: 'Включено',
+    enable: 'Включить',
+    disable: 'Выключить',
+
     // API Errors
     api_error_user_not_found: 'Пользователь не найден',
     api_error_invalid_password: 'Неверный пароль',
@@ -1317,6 +1333,14 @@ export const translations = {
     email_2fa_body: 'Your two-factor authentication code to access your account:',
     email_reset_body: 'You requested a password reset for your account. Click the button below to change your password:',
     tg_2fa_message: '🔐 *Verification Code*\n\nYour login code: `${code}`\n\n_This code is valid for 10 minutes._',
+    
+    email_2fa_footer: 'This code is valid for 10 minutes.',
+    email_reset_button: 'Reset Password',
+    email_reset_footer: 'If you did not request a password reset, please ignore this email.',
+    two_factor_auth: 'Two-Factor Authentication (2FA)',
+    enabled: 'Enabled',
+    enable: 'Enable',
+    disable: 'Disable',
 
     // API Errors
     api_error_user_not_found: 'User not found',

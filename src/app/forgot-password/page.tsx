@@ -7,7 +7,7 @@ import { Bot, Mail, ArrowRight, Loader2, ArrowLeft, CheckCircle } from 'lucide-r
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function ForgotPasswordPage() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -22,7 +22,7 @@ export default function ForgotPasswordPage() {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, lang: language }),
       })
 
       const data = await res.json()

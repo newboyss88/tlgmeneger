@@ -5,22 +5,25 @@ import jwt from 'jsonwebtoken'
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json()
+    const { email, lang: providedLang } = await request.json()
     const { translations } = require('@/lib/i18n/translations')
     
-    if (!email) {
-      return NextResponse.json({ error: translations['uz'].api_error_email_required }, { status: 400 })
+    // Normalize email
+    const normalizedEmail = email?.trim().toLowerCase()
+
+    if (!normalizedEmail) {
+      return NextResponse.json({ error: translations[providedLang || 'uz'].api_error_email_required }, { status: 400 })
     }
 
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email: normalizedEmail }
     })
 
     if (!user) {
-      return NextResponse.json({ error: translations['uz'].email_not_found }, { status: 404 })
+      return NextResponse.json({ error: translations[providedLang || 'uz'].email_not_found }, { status: 404 })
     }
 
-    const lang = ((user as any).language as 'uz' | 'ru' | 'en') || 'uz'
+    const lang = providedLang || ((user as any).language as 'uz' | 'ru' | 'en') || 'uz'
     const t = translations[lang]
 
     // Generate a reset token (expires in 1 hour)
@@ -30,7 +33,9 @@ export async function POST(request: Request) {
       { expiresIn: '1h' }
     )
 
-    const appURL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    // Dinamik URL: Origin headeridan olish yoki muhit o'zgaruvchisidan
+    const origin = request.headers.get('origin')
+    const appURL = process.env.NEXT_PUBLIC_APP_URL || origin || 'http://localhost:3000'
     const resetUrl = `${appURL}/reset-password?token=${token}`
     
     // Platforma nomini bazadan olish
@@ -41,7 +46,7 @@ export async function POST(request: Request) {
     const appName = appNameSetting?.value || process.env.NEXT_PUBLIC_APP_NAME || 'Platform'
 
     const mailResult = await sendMail({
-      to: email,
+      to: normalizedEmail,
       subject: `${t.email_reset_subject} - ${appName}`,
       text: `${t.email_reset_body}\n${resetUrl}`,
       html: `

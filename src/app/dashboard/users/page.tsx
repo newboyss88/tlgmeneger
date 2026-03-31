@@ -646,7 +646,13 @@ export default function UsersPage() {
                           
                           {isEditMode && (
                             <button 
-                              onClick={() => setMonitoringUser({ ...monitoringUser, twoFactorEnabled: !monitoringUser.twoFactorEnabled })}
+                              onClick={() => {
+                                const becomingEnabled = !monitoringUser.twoFactorEnabled;
+                                if (becomingEnabled && !monitoringUser.telegramUsername && !monitoringUser.telegramId) {
+                                  toast.error(t('tg_not_found') || 'Telegram username bog\'lanmagan! 2FA kodini yuborish imkonsiz bo\'lishi mumkin.');
+                                }
+                                setMonitoringUser({ ...monitoringUser, twoFactorEnabled: becomingEnabled });
+                              }}
                               style={{ 
                                 padding: '6px 12px', fontSize: '12px', fontWeight: '600', borderRadius: '20px', cursor: 'pointer',
                                 background: monitoringUser.twoFactorEnabled ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',

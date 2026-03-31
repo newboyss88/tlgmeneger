@@ -12,7 +12,7 @@ import { useSettings } from '@/lib/SettingsContext'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const { settings } = useSettings()
   const [loginType, setLoginType] = useState<'email' | 'phone'>('email')
   const [email, setEmail] = useState('')
@@ -49,7 +49,7 @@ export default function LoginPage() {
         const sendRes = await fetch('/api/auth/2fa/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: credential, password }),
+          body: JSON.stringify({ email: credential, password, lang: language }),
         })
         const sendData = await sendRes.json()
         

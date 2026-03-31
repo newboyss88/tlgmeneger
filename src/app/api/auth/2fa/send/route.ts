@@ -6,7 +6,7 @@ import { sendTelegramMessage } from '@/lib/telegram'
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json()
+    const { email, password, lang: providedLang } = await req.json()
     const input = email?.trim()
 
     if (!input || !password) {
@@ -18,7 +18,8 @@ export async function POST(req: Request) {
     if (input.startsWith('+') || /^\d{9,}$/.test(input)) {
        user = await prisma.user.findFirst({ where: { phone: input } })
     } else {
-       user = await prisma.user.findUnique({ where: { email: input } })
+       const normalizedEmail = input.toLowerCase()
+       user = await prisma.user.findUnique({ where: { email: normalizedEmail } })
     }
 
     if (!user) {
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
     })
     const appName = appNameSetting?.value || process.env.NEXT_PUBLIC_APP_NAME || 'TelegramManager'
     
-    const lang = ((user as any).language as 'uz' | 'ru' | 'en') || 'uz'
+    const lang = providedLang || ((user as any).language as 'uz' | 'ru' | 'en') || 'uz'
     const { translations } = require('@/lib/i18n/translations')
     const t = translations[lang]
 

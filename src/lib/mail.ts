@@ -24,9 +24,11 @@ export async function sendMail({ to, subject, text, html }: { to: string, subjec
   const from = config.smtpFrom || process.env.SMTP_FROM || 'noreply@yourdomain.com'
 
   if (!host || !user || !pass) {
-    console.error('[MAIL] SMTP parameters not configured')
+    console.error('[MAIL] SMTP parameters not configured. Host:', !!host, 'User:', !!user, 'Pass:', !!pass)
     return { success: false, error: 'SMTP parameters not configured' }
   }
+
+  console.log(`[MAIL] Sending to ${to} via ${host}:${port} (Source: ${smtpSettings.length > 0 ? 'DB' : 'ENV'})`)
 
   const transporter = nodemailer.createTransport({
     host,

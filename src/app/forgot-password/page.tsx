@@ -4,8 +4,10 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Bot, Mail, ArrowRight, Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function ForgotPasswordPage() {
+  const { t } = useLanguage()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -27,10 +29,10 @@ export default function ForgotPasswordPage() {
       if (res.ok) {
         setSent(true)
       } else {
-        setError(data.error || 'Xatolik yuz berdi')
+        setError(data.error || t('error'))
       }
     } catch {
-      setError('Tarmoq xatosi')
+      setError(t('network_error'))
     } finally {
       setLoading(false)
     }
@@ -80,12 +82,12 @@ export default function ForgotPasswordPage() {
             </div>
           </Link>
           <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '8px' }}>
-            {sent ? 'Email yuborildi!' : 'Parolni tiklash'}
+            {sent ? t('forgot_password_success_title') : t('forgot_password_title')}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
             {sent
-              ? 'Emailingizni tekshiring va ko\'rsatmalarga amal qiling'
-              : 'Ro\'yxatdan o\'tgan emailingizni kiriting'}
+              ? t('forgot_password_success_desc')
+              : t('forgot_password_input_desc')}
           </p>
         </div>
 
@@ -109,12 +111,11 @@ export default function ForgotPasswordPage() {
                 <CheckCircle size={40} color="var(--success)" />
               </div>
               <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
-                <strong style={{ color: 'var(--text-primary)' }}>{email}</strong> manziliga
-                parolni tiklash havolasi yuborildi.
+                <strong style={{ color: 'var(--text-primary)' }}>{email}</strong> {t('forgot_password_sent_msg')}
               </p>
               <Link href="/login" className="btn btn-primary" style={{ width: '100%' }}>
                 <ArrowLeft size={18} />
-                Kirish sahifasiga qaytish
+                {t('back_to_login')}
               </Link>
             </motion.div>
           ) : (
@@ -161,7 +162,7 @@ export default function ForgotPasswordPage() {
                   <Loader2 size={20} className="animate-spin" />
                 ) : (
                   <>
-                    Havolani yuborish
+                    {t('send_link')}
                     <ArrowRight size={18} />
                   </>
                 )}
@@ -178,7 +179,7 @@ export default function ForgotPasswordPage() {
         }}>
           <Link href="/login" style={{ color: 'var(--primary-400)', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             <ArrowLeft size={14} />
-            Kirish sahifasiga qaytish
+            {t('back_to_login')}
           </Link>
         </p>
       </motion.div>

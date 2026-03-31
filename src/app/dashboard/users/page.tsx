@@ -18,6 +18,7 @@ interface UserItem {
   isBlocked: boolean
   createdAt: string
   telegramId: string | null
+  telegramUsername: string | null
   twoFactorEnabled: boolean
   language: string
 }
@@ -393,7 +394,7 @@ export default function UsersPage() {
                     {user.phone || <em style={{opacity:0.5}}>{t('not_provided')}</em>}
                   </td>
                   <td>
-                    {user.telegramId ? (
+                    {user.telegramUsername || user.telegramId ? (
                       <span 
                         style={{ 
                           fontSize: '13px', 
@@ -404,7 +405,10 @@ export default function UsersPage() {
                         }}
                       >
                         <MessageSquare size={14} />
-                        {user.telegramId.startsWith('@') ? user.telegramId : `@${user.telegramId}`}
+                        {user.telegramUsername 
+                          ? (user.telegramUsername.startsWith('@') ? user.telegramUsername : `@${user.telegramUsername}`)
+                          : (user.telegramId?.startsWith('@') ? user.telegramId : `@${user.telegramId}`)
+                        }
                       </span>
                     ) : (
                       <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>{t('not_available')}</span>
@@ -549,10 +553,15 @@ export default function UsersPage() {
                           <div className="input-group">
                             <label>Telegram Username / ID</label>
                             {isEditMode ? (
-                              <input type="text" className="input" value={monitoringUser.telegramId || ''} onChange={(e) => setMonitoringUser({ ...monitoringUser, telegramId: e.target.value })} />
+                              <input type="text" className="input" value={monitoringUser.telegramUsername || monitoringUser.telegramId || ''} onChange={(e) => setMonitoringUser({ ...monitoringUser, telegramUsername: e.target.value })} />
                             ) : (
                               <div className="card" style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', fontSize: '14px', color: 'var(--primary-400)' }}>
-                                {monitoringUser.telegramId ? `@${monitoringUser.telegramId.replace('@', '')}` : t('not_available')}
+                                {monitoringUser.telegramUsername 
+                                  ? `@${monitoringUser.telegramUsername.replace('@', '')}` 
+                                  : monitoringUser.telegramId 
+                                    ? `@${monitoringUser.telegramId.replace('@', '')}`
+                                    : t('not_available')
+                                }
                               </div>
                             )}
                           </div>

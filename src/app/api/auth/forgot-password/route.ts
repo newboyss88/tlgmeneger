@@ -6,9 +6,10 @@ import jwt from 'jsonwebtoken'
 export async function POST(request: Request) {
   try {
     const { email } = await request.json()
-
+    const { translations } = require('@/lib/i18n/translations')
+    
     if (!email) {
-      return NextResponse.json({ error: 'Email kiritilishi shart' }, { status: 400 })
+      return NextResponse.json({ error: translations['uz'].api_error_email_required }, { status: 400 })
     }
 
     const user = await prisma.user.findUnique({
@@ -16,9 +17,11 @@ export async function POST(request: Request) {
     })
 
     if (!user) {
-      // For security reasons, don't reveal if user exists, but here we can return success
-      return NextResponse.json({ message: 'Agar ushbu email ro\'yxatdan o\'tgan bo\'lsa, unga xat yuboriladi.' })
+      return NextResponse.json({ error: translations['uz'].email_not_found }, { status: 404 })
     }
+
+    const lang = ((user as any).language as 'uz' | 'ru' | 'en') || 'uz'
+    const t = translations[lang]
 
     // Generate a reset token (expires in 1 hour)
     const token = jwt.sign(
@@ -36,9 +39,6 @@ export async function POST(request: Request) {
       where: { userId_key: { userId: superAdmin?.id || '', key: 'appName' } }
     })
     const appName = appNameSetting?.value || process.env.NEXT_PUBLIC_APP_NAME || 'Platform'
-    const lang = ((user as any).language as 'uz' | 'ru' | 'en') || 'uz'
-    const { translations } = require('@/lib/i18n/translations')
-    const t = translations[lang]
 
     const mailResult = await sendMail({
       to: email,
@@ -50,27 +50,30 @@ export async function POST(request: Request) {
           <p style="color: #475569; font-size: 16px; line-height: 24px;">
             ${t.email_reset_body}
           </p>
-          <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #7c3aed; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 24px 0;">
-            ${t.email_reset_button}
-          </a>
-          <p style="color: #64748b; font-size: 14px;">
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${resetUrl}" style="display: inline-block; padding: 14px 28px; background-color: #7c3aed; color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);">
+              ${t.email_reset_button}
+            </a>
+          </div>
+          <p style="color: #64748b; font-size: 14px; line-height: 20px;">
             ${t.email_reset_footer}
           </p>
-          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+          <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
           <p style="color: #94a3b8; font-size: 12px; text-align: center;">
-            &copy; ${new Date().getFullYear()} ${appName}. Barcha huquqlar himoyalangan.
+            &copy; ${new Date().getFullYear()} ${appName}. ${t.all_rights_reserved}
           </p>
         </div>
       `
     })
 
     if (!mailResult.success) {
-      return NextResponse.json({ error: 'Email yuborishda xatolik yuz berdi' }, { status: 500 })
+      console.error('Email send failed:', mailResult.error)
+      return NextResponse.json({ error: t.api_error_email_sent_fail }, { status: 500 })
     }
 
     return NextResponse.json({ message: t.api_error_reset_email_info })
   } catch (error) {
     console.error('Forgot password error:', error)
-    return NextResponse.json({ error: 'Server xatosi' }, { status: 500 })
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

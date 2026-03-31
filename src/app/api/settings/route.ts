@@ -83,9 +83,17 @@ export async function PUT(request: Request) {
 
       // User modelidagi twoFactorEnabled fieldini ham yangilash
       if (key === 'twoFactorAuth') {
-        await prisma.user.update({
+        await (prisma.user as any).update({
           where: { id: userId },
           data: { twoFactorEnabled: value === true || value === 'true' }
+        })
+      }
+
+      // User modelidagi language fieldini ham yangilash
+      if (key === 'language') {
+        await (prisma.user as any).update({
+          where: { id: userId },
+          data: { language: String(value) }
         })
       }
 
@@ -95,9 +103,9 @@ export async function PUT(request: Request) {
         if (username.startsWith('@')) username = username.substring(1)
         
         // TelegramUser jadvalidan ushbu username-li foydalanuvchini qidiramiz
-        const tgUser = await prisma.telegramUser.findFirst({
+        const tgUser = await (prisma as any).telegramUser.findFirst({
           where: { 
-            username: { equals: username } // Bizda hozircha db darajasida insensitive emas, lekin normalizatsiya qildik
+            username: { equals: username }
           },
           orderBy: { createdAt: 'desc' }
         })

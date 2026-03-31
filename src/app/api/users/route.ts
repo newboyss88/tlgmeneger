@@ -20,11 +20,21 @@ export async function GET() {
         isBlocked: true,
         createdAt: true,
         telegramId: true,
+        settings: {
+          where: { key: 'telegramUsername' },
+          select: { value: true }
+        }
       },
       orderBy: { createdAt: 'desc' }
     })
 
-    return NextResponse.json(users)
+    const transformedUsers = users.map(u => ({
+      ...u,
+      telegramUsername: u.settings[0]?.value || null,
+      settings: undefined
+    }))
+
+    return NextResponse.json(transformedUsers)
   } catch (error) {
     console.error('Users GET error:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

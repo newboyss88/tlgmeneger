@@ -340,7 +340,15 @@ export async function POST(request: Request) {
     if (!text) return NextResponse.json({ ok: true });
 
     if (text === '/start' || text === '/help' || text === '/cheking' || text === '/sklad' || text.startsWith('/')) {
-      const commandName = text.replace('/', '');
+      // DELETE THE USER OVERLAY COMMAND MESSAGE TO CLEAN UP
+      await fetch(`https://api.telegram.org/bot${botToken}/deleteMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, message_id: message.message_id }),
+      }).catch(() => {});
+
+      const commandName = text.replace('/', '').split('@')[0];
+
       
       if (commandName === 'cheking') {
           const buttons = bot.warehouses.map((w: any) => [{ text: `🏢 ${w.name}`, callback_data: `rpt_wh_${w.id}` }]);

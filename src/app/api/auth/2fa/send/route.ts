@@ -8,9 +8,12 @@ export async function POST(req: Request) {
   try {
     const { email, password, lang: providedLang } = await req.json()
     const input = email?.trim()
+    const { translations } = require('@/lib/i18n/translations')
+    const lang = providedLang || 'uz'
+    const t = translations[lang]
 
     if (!input || !password) {
-      return NextResponse.json({ error: 'Email/telefon va parol kiritilishi shart' }, { status: 400 })
+      return NextResponse.json({ error: t.api_error_email_required || 'Email/telefon va parol kiritilishi shart' }, { status: 400 })
     }
 
     // Foydalanuvchini topish (email yoki telefon orqali)
@@ -23,13 +26,13 @@ export async function POST(req: Request) {
     }
 
     if (!user) {
-      return NextResponse.json({ error: 'Foydalanuvchi topilmadi' }, { status: 404 })
+      return NextResponse.json({ error: t.api_error_user_not_found || 'Foydalanuvchi topilmadi' }, { status: 404 })
     }
 
     // Parolni tekshirish
     const isPasswordValid = await compare(password, user.password)
     if (!isPasswordValid) {
-      return NextResponse.json({ error: 'Parol noto\'g\'ri' }, { status: 401 })
+      return NextResponse.json({ error: t.api_error_invalid_password || 'Parol noto\'g\'ri' }, { status: 401 })
     }
 
     // 2FA yoqilganmi?
@@ -62,11 +65,7 @@ export async function POST(req: Request) {
     })
     const appName = appNameSetting?.value || process.env.NEXT_PUBLIC_APP_NAME || 'TelegramManager'
     
-    const lang = providedLang || ((user as any).language as 'uz' | 'ru' | 'en') || 'uz'
-    const { translations } = require('@/lib/i18n/translations')
-    const t = translations[lang]
-
-    // 1. Email yuborish
+    const origin = req.headers.get('origin')
     const mailResult = await sendMail({
       to: user.email,
       subject: `${t.email_2fa_subject} - ${appName}`,

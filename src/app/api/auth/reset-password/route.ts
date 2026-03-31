@@ -5,14 +5,17 @@ import jwt from 'jsonwebtoken'
 
 export async function POST(request: Request) {
   try {
-    const { token, password } = await request.json()
+    const { token, password, lang: providedLang } = await request.json()
+    const { translations } = require('@/lib/i18n/translations')
+    const lang = providedLang || 'uz'
+    const t = translations[lang]
 
     if (!token || !password) {
-      return NextResponse.json({ error: 'Token va yangi parol kiritilishi shart' }, { status: 400 })
+      return NextResponse.json({ error: t.api_error_token_invalid || 'Token va yangi parol kiritilishi shart' }, { status: 400 })
     }
 
     if (password.length < 6) {
-      return NextResponse.json({ error: 'Parol kamida 6 ta belgidan iborat bo\'lishi kerak' }, { status: 400 })
+      return NextResponse.json({ error: t.password_too_short }, { status: 400 })
     }
 
     // Verify token
@@ -20,14 +23,13 @@ export async function POST(request: Request) {
     try {
       decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'secret')
     } catch (err) {
-      return NextResponse.json({ error: 'Token yaroqsiz yoki muddati o\'tgan' }, { status: 401 })
+      return NextResponse.json({ error: t.api_error_token_invalid || 'Token yaroqsiz yoki muddati o\'tgan' }, { status: 401 })
     }
 
     const userId = decoded.userId
     const user = await prisma.user.findUnique({ where: { id: userId } })
-    const lang = (user as any)?.language || 'uz'
-    const { translations } = require('@/lib/i18n/translations')
-    const t = translations[lang]
+    const userLang = providedLang || (user as any)?.language || 'uz'
+    const ut = translations[userLang]
 
     // Hash new password
     const hashedPassword = await hash(password, 12)
@@ -49,9 +51,9 @@ export async function POST(request: Request) {
       }
     })
 
-    return NextResponse.json({ message: t.reset_success || 'Parol muvaffaqiyatli yangilandi' })
+    return NextResponse.json({ message: ut.reset_success || 'Parol muvaffaqiyatli yangilandi' })
   } catch (error) {
     console.error('Reset password error:', error)
-    return NextResponse.json({ error: 'Server xatosi' }, { status: 500 })
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

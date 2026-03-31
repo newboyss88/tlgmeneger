@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -29,6 +29,20 @@ export default function LoginPage() {
     tgError: null as string | null,
     botUsername: null as string | null
   })
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendTimer, setResendTimer] = useState(0)
+  const [resendMessage, setResendMessage] = useState('')
+
+  // Resend timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1)
+      }, 1000)
+    }
+    return () => clearInterval(interval)
+  }, [resendTimer])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,6 +55,7 @@ export default function LoginPage() {
         email: credential,
         password,
         code: twoFactorCode,
+        lang: language,
         redirect: false,
       })
 
@@ -73,6 +88,41 @@ export default function LoginPage() {
       setError('Xatolik yuz berdi')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResendCode = async () => {
+    if (resendTimer > 0 || resendLoading) return
+    
+    setResendLoading(true)
+    setError('')
+    setResendMessage('')
+
+    try {
+      const credential = loginType === 'email' ? email : phone
+      const sendRes = await fetch('/api/auth/2fa/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: credential, password, lang: language }),
+      })
+      const sendData = await sendRes.json()
+      
+      if (sendData.success) {
+        setResendMessage(t('code_sent_success'))
+        setResendTimer(60) // 1 minute cooldown
+        setDeliveryStatus({
+          email: !!sendData.channels?.email,
+          telegram: !!sendData.channels?.telegram,
+          tgError: sendData.channels?.tgError || null,
+          botUsername: sendData.botUsername || null
+        })
+      } else {
+        setError(sendData.error || t('server_error'))
+      }
+    } catch (err) {
+      setError(t('server_error'))
+    } finally {
+      setResendLoading(false)
     }
   }
 
@@ -312,16 +362,42 @@ export default function LoginPage() {
                 {loading ? <Loader2 size={20} className="animate-spin" /> : <>{t('verify')} <ArrowRight size={18} /></>}
               </button>
 
-              <button
-                type="button"
-                onClick={() => setIs2faRequired(false)}
-                style={{
-                  background: 'none', border: 'none', color: 'var(--text-secondary)',
-                  fontSize: '14px', fontWeight: '500', cursor: 'pointer',
-                }}
-              >
-                {t('cancel')}
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={resendTimer > 0 || resendLoading}
+                  style={{
+                    background: 'none', border: 'none', 
+                    color: resendTimer > 0 ? 'var(--text-tertiary)' : 'var(--primary-400)',
+                    fontSize: '13px', fontWeight: '600', cursor: resendTimer > 0 ? 'default' : 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '6px'
+                  }}
+                >
+                  {resendLoading ? <Loader2 size={14} className="animate-spin" /> : t('resend_code')}
+                  {resendTimer > 0 && <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                    ({t('resend_wait').replace('{seconds}', resendTimer.toString())})
+                  </span>}
+                </button>
+
+                {resendMessage && (
+                  <span style={{ fontSize: '12px', color: 'var(--accent-green)', fontWeight: '500' }}>
+                    {resendMessage}
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setIs2faRequired(false)}
+                  style={{
+                    background: 'none', border: 'none', color: 'var(--text-secondary)',
+                    fontSize: '14px', fontWeight: '500', cursor: 'pointer',
+                    marginTop: '8px'
+                  }}
+                >
+                  {t('cancel')}
+                </button>
+              </div>
             </form>
           )}
         </div>

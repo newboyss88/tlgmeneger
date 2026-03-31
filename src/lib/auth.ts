@@ -26,21 +26,22 @@ export const authOptions: NextAuthOptions = {
         }
 
         const input = credentials.email.trim()
+        const lang = (credentials as any).lang || 'uz'
+        const { translations } = require('./i18n/translations')
+        const t = translations[lang]
 
         // Foydalanuvchini topish
         let user
         if (input.startsWith('+') || /^\d{9,}$/.test(input)) {
           user = await prisma.user.findFirst({ where: { phone: input } })
         } else {
-          user = await prisma.user.findUnique({ where: { email: input } })
+          const normalizedEmail = input.toLowerCase()
+          user = await prisma.user.findUnique({ where: { email: normalizedEmail } })
         }
 
         if (!user) {
-          throw new Error('Foydalanuvchi topilmadi')
+          throw new Error(t.api_error_user_not_found || 'Foydalanuvchi topilmadi')
         }
-
-        const { translations } = require('./i18n/translations')
-        const t = translations[(user as any).language || 'uz']
 
         if (user.isBlocked) {
           throw new Error(t.banned_msg || 'Sizning hisobingiz bloklangan')

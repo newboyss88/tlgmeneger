@@ -467,6 +467,9 @@ export const translations = {
     email_2fa_footer: 'Bu kod 10 daqiqa davomida amal qiladi.',
     all_rights_reserved: 'Barcha huquqlar himoyalangan.',
     api_error_email_sent_fail: 'Email yuborishda xatolik yuz berdi',
+    resend_code: 'Kodni qayta yuborish',
+    code_resend_success: 'Tasdiqlash kodi qayta yuborildi!',
+    resend_wait: 'Iltimos kutib turing: {seconds}s',
   },
   ru: {
     hero_title: 'Профессиональное Управление Вашим Telegram Ботом',
@@ -932,6 +935,9 @@ export const translations = {
     email_2fa_footer: 'Этот код действителен в течение 10 минут.',
     all_rights_reserved: 'Все права защищены.',
     api_error_email_sent_fail: 'Ошибка при отправке письма',
+    resend_code: 'Переотправить код',
+    code_resend_success: 'Код подтверждения переотправлен!',
+    resend_wait: 'Пожалуйста подождите: {seconds}с',
   },
   en: {
     hero_title: 'Manage Your Telegram Bot Professionally',
@@ -1397,5 +1403,8 @@ export const translations = {
     email_2fa_footer: 'This code is valid for 10 minutes.',
     all_rights_reserved: 'All rights reserved.',
     api_error_email_sent_fail: 'Failed to send email',
+    resend_code: 'Resend Code',
+    code_resend_success: 'Verification code resent!',
+    resend_wait: 'Please wait: {seconds}s',
   },
 }

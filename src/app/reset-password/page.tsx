@@ -11,7 +11,7 @@ function ResetPasswordContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -46,7 +46,7 @@ function ResetPasswordContent() {
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ token, password, lang: language }),
       })
 
       const data = await res.json()
@@ -161,7 +161,7 @@ export default function ResetPasswordPage() {
         style={{ width: '100%', maxWidth: '420px', position: 'relative', zIndex: 1 }}
       >
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ marginBottom: '24px', display: 'inline-block' }}>
+          <Link href="/" style={{ marginBottom: '24px', display: 'inline-block' }}>
             <div style={{
               width: '48px', height: '48px', borderRadius: 'var(--radius-md)',
               background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center',
@@ -169,7 +169,7 @@ export default function ResetPasswordPage() {
             }}>
               <Bot size={26} color="white" />
             </div>
-          </div>
+          </Link>
           <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '8px' }}>{t('reset_password_title')}</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>{t('reset_password_desc')}</p>
         </div>

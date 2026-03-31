@@ -2,7 +2,9 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Production database schema (last sync with Turso via Antigravity)
 datasource db {
+
   provider = "sqlite"
 }
 

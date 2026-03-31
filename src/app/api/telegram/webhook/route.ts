@@ -340,13 +340,6 @@ export async function POST(request: Request) {
     if (!text) return NextResponse.json({ ok: true });
 
     if (text === '/start' || text === '/help' || text === '/cheking' || text === '/sklad' || text.startsWith('/')) {
-      // DELETE THE USER OVERLAY COMMAND MESSAGE TO CLEAN UP
-      await fetch(`https://api.telegram.org/bot${botToken}/deleteMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, message_id: message.message_id }),
-      }).catch(() => {});
-
       const commandName = text.replace('/', '').split('@')[0];
 
       
@@ -495,22 +488,6 @@ export async function POST(request: Request) {
 
 async function sendTelegramMessage(token: string, chatId: number, text: string, parseMode?: string, replyMarkup?: any, botId?: string, tgUserId?: string) {
   try {
-    if (botId && tgUserId) {
-       const user = await prisma.telegramUser.findUnique({ where: { id: tgUserId } });
-       if (user?.sessionData) {
-          try {
-             const session = JSON.parse(user.sessionData);
-             if (session.lastMessageId) {
-                await fetch(`https://api.telegram.org/bot${token}/deleteMessage`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ chat_id: chatId, message_id: session.lastMessageId }),
-                }).catch(() => {});
-             }
-          } catch(e) {}
-       }
-    }
-
     const payload: any = { chat_id: chatId, text: text || "Xatolik..." };
     if (parseMode) payload.parse_mode = parseMode;
     if (replyMarkup) payload.reply_markup = replyMarkup;
@@ -522,17 +499,6 @@ async function sendTelegramMessage(token: string, chatId: number, text: string, 
     })
     const data = await res.json();
     
-    if (data.ok && data.result?.message_id && botId && tgUserId) {
-       const user = await prisma.telegramUser.findUnique({ where: { id: tgUserId } });
-       let session = {};
-       try { session = JSON.parse(user?.sessionData || '{}'); } catch(e) {}
-       (session as any).lastMessageId = data.result.message_id;
-       await prisma.telegramUser.update({
-         where: { id: tgUserId },
-         data: { sessionData: JSON.stringify(session) }
-       });
-    }
-
     return data;
   } catch (error) {
     console.error(`[WEBHOOK] Failed:`, error)

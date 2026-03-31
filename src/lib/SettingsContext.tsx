@@ -17,7 +17,7 @@ interface SettingsContextType {
 }
 
 const defaultSettings: Settings = {
-  appName: process.env.NEXT_PUBLIC_APP_NAME || 'TelegramManager',
+  appName: '', // Bo'sh bo'lsa, yuklanguncha hech narsa ko'rinmaydi va "flash" bo'lmaydi
   darkMode: true,
   timezone: 'Asia/Tashkent',
 }

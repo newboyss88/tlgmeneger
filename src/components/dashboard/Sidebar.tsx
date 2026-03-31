@@ -70,7 +70,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 whiteSpace: 'nowrap', overflow: 'hidden',
               }}
             >
-              {settings.appName || 'TelegramManager'}
+              {settings.appName}
             </motion.span>
           )}
         </AnimatePresence>

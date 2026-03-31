@@ -42,8 +42,17 @@ export async function sendMail({ to, subject, text, html }: { to: string, subjec
   })
 
   try {
+    // Platforma nomini bazadan olish
+    const appNameSetting = await prisma.setting.findFirst({
+      where: { 
+        userId: superAdmin?.id || '',
+        key: 'appName'
+      }
+    })
+    const displayName = appNameSetting?.value || process.env.NEXT_PUBLIC_APP_NAME || 'Platform'
+
     await transporter.sendMail({
-      from: `"TelegramManager" <${from}>`,
+      from: `"${displayName}" <${from}>`,
       to,
       subject,
       text,

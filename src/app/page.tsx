@@ -98,7 +98,7 @@ export default function LandingPage() {
             <Bot size={22} color="white" />
           </div>
           <span style={{ fontSize: '20px', fontWeight: '800', background: 'var(--gradient-secondary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            {settings.appName || 'TelegramManager'}
+            {settings.appName}
           </span>
         </Link>
 
@@ -259,7 +259,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer style={{ padding: '40px 24px', textAlign: 'center' }}>
         <p style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>
-          © 2024 TelegramManager.
+          © {new Date().getFullYear()} {settings.appName}.
         </p>
       </footer>
     </div>

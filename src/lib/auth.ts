@@ -30,13 +30,20 @@ export const authOptions: NextAuthOptions = {
         const { translations } = require('./i18n/translations')
         const t = translations[lang]
 
-        // Foydalanuvchini topish
+        // Foydalanuvchini topish (Case-insensitive support for SQLite)
         let user
         if (input.startsWith('+') || /^\d{9,}$/.test(input)) {
           user = await prisma.user.findFirst({ where: { phone: input } })
         } else {
-          const normalizedEmail = input.toLowerCase()
-          user = await prisma.user.findUnique({ where: { email: normalizedEmail } })
+          user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { email: input },
+                { email: input.toLowerCase() },
+                { email: input.toUpperCase() }
+              ]
+            }
+          })
         }
 
         if (!user) {

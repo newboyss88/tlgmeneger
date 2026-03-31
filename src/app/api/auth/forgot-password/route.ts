@@ -15,8 +15,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: translations[providedLang || 'uz'].api_error_email_required }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail }
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: normalizedEmail }, // normalized already includes trim, lowercase
+          { email: email?.trim() || '' }, // original case
+          { email: (email?.trim() || '').toUpperCase() } // uppercase
+        ]
+      }
     })
 
     if (!user) {

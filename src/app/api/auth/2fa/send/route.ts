@@ -16,13 +16,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t.api_error_email_required || 'Email/telefon va parol kiritilishi shart' }, { status: 400 })
     }
 
-    // Foydalanuvchini topish (email yoki telefon orqali)
+    // Foydalanuvchini topish (email yoki telefon orqali - Case-insensitive support for SQLite)
     let user
     if (input.startsWith('+') || /^\d{9,}$/.test(input)) {
        user = await prisma.user.findFirst({ where: { phone: input } })
     } else {
-       const normalizedEmail = input.toLowerCase()
-       user = await prisma.user.findUnique({ where: { email: normalizedEmail } })
+       user = await prisma.user.findFirst({
+         where: {
+           OR: [
+             { email: input },
+             { email: input.toLowerCase() },
+             { email: input.toUpperCase() }
+           ]
+         }
+       })
     }
 
     if (!user) {

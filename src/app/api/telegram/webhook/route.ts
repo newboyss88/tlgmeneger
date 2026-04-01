@@ -275,17 +275,10 @@ export async function POST(request: Request) {
         const pr = allProducts.find((p: any) => p.id === prId);
         if (pr) {
             const actualQty = type === 'OUT' ? Math.min(pr.quantity, qty) : qty;
+            
             if (type === 'OUT') {
                const replyMsg = `📉 ${t.deduct}: *${actualQty}* ${fUnit(pr.unit)}\n📦 ${t.product}: *${pr.name}*\n\n👇 ${t.who_to_prompt}\n\n💬 ${t.code}: OUT-${actualQty}-${pr.id}`;
-               
-               // Use reply_markup with ForceReply and selective: true
-               const replyMarkup = {
-                 force_reply: true,
-                 selective: true,
-                 input_field_placeholder: t.who_to_prompt
-               };
-
-               await sendTelegramMessage(botToken, chatId, replyMsg, 'Markdown', replyMarkup, bot.id, tgUserId || undefined);
+               await sendTelegramMessage(botToken, chatId, replyMsg, 'Markdown', { force_reply: true }, bot.id, tgUserId || undefined);
                return NextResponse.json({ ok: true });
             }
 
@@ -309,9 +302,6 @@ export async function POST(request: Request) {
             const status = newQuantity <= pr.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
             const msg = `✅ ${t.operation_success}\n📱 ${t.product}: *${pr.name}*\n📈 ${t.income}: *${actualQty}* ${fUnit(pr.unit)}\n📦 ${t.newBalance}: *${newQuantity}* ${fUnit(pr.unit)}\n${status}`;
             await sendTelegramMessage(botToken, chatId, msg, 'Markdown', undefined, bot.id, tgUserId || undefined);
-            return NextResponse.json({ ok: true });
-
-
         }
         return NextResponse.json({ ok: true })
       }

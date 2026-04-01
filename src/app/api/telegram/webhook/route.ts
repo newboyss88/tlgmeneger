@@ -47,9 +47,10 @@ export async function POST(request: Request) {
     // --- UPSERT TELEGRAM USER ---
     const fromUser = callbackQuery?.from || message.from
     let tgUserId: string | null = null;
+    let tgUser: any = null;
     if (fromUser && !fromUser.is_bot) {
       const tgIdStr = fromUser.id.toString()
-      const tgUser = await prisma.telegramUser.upsert({
+      tgUser = await prisma.telegramUser.upsert({
         where: { botId_telegramId: { botId: bot.id, telegramId: tgIdStr } },
         update: {
           username: fromUser.username || null,
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
 
       if (tgUser.isBanned) {
         if (chatType === 'private' && !callbackQuery) {
-           await sendTelegramMessage(botToken, chatId, '⛔ Siz bloklangansiz.', undefined, undefined, bot.id, tgUserId);
+           await sendTelegramMessage(botToken, chatId, '⛔ Siz bloklangansiz.', undefined, undefined, bot.id, tgUserId || undefined);
         }
         return NextResponse.json({ ok: true })
       }
@@ -106,7 +107,8 @@ export async function POST(request: Request) {
         units: { dona: 'dona', kg: 'kg', metr: 'm', litr: 'l' },
         deduct: 'Chiqim', income: 'Kirim', operation_success: 'Muvaffaqiyatli',
         who_to_prompt: 'Kimga qilinayotganini yozing:', who_to: 'Kimga', code: 'Kod', autoDeduct: 'Avto-chiqim', also_found: 'Yana {count} ta topildi',
-        group_restricted: '❌ Guruhda buyruq va xabar yozish taqiqlangan, guruh botiga (@{bot}) o\'tib buyruq va xabar yozishingiz talab qilinadi.'
+        group_restricted: '❌ Guruhda buyruq va xabar yozish taqiqlangan, guruh botiga (@{bot}) o\'tib buyruq va xabar yozishingiz talab qilinadi.',
+        action_by: 'Amaliyotchi'
       },
       ru: {
         newBalance: 'Новый остаток', statusLow: 'Мало в наличии!', statusOk: 'Достаточно',
@@ -127,7 +129,8 @@ export async function POST(request: Request) {
         units: { dona: 'шт.', kg: 'кг', metr: 'м', litr: 'л' },
         deduct: 'Списание', income: 'Приход', operation_success: 'Успешно',
         who_to_prompt: 'Напишите кому:', who_to: 'Кому', code: 'Код', autoDeduct: 'Авто-списание', also_found: 'Найдено еще {count}',
-        group_restricted: '❌ В группе запрещено писать команды и сообщения, перейдите в бот группы (@{bot}) для выполнения команд.'
+        group_restricted: '❌ В группе запрещено писать команды и сообщения, перейдите в бот группы (@{bot}) для выполнения команд.',
+        action_by: 'Исполнитель'
       },
       en: {
         newBalance: 'New balance', statusLow: 'Running low!', statusOk: 'In stock',
@@ -148,7 +151,8 @@ export async function POST(request: Request) {
         units: { dona: 'pcs', kg: 'kg', metr: 'm', litr: 'l' },
         deduct: 'Deduction', income: 'Income', operation_success: 'Success',
         who_to_prompt: 'Write to whom:', who_to: 'To', code: 'Code', autoDeduct: 'Auto-deduction', also_found: '{count} more found',
-        group_restricted: '❌ Commands and messages are restricted in this group, please use the group bot (@{bot}) instead.'
+        group_restricted: '❌ Commands and messages are restricted in this group, please use the group bot (@{bot}) instead.',
+        action_by: 'Operator'
       }
 
     };
@@ -228,7 +232,7 @@ export async function POST(request: Request) {
               
               report += `• ${date} | ${userName} | ${tr.product.name} | ${tr.product.sku || '-'} | ${typeChar} ${tr.quantity} ${fUnit(tr.product.unit)} | ${cleanNote}\n`;
            });
-           await sendTelegramMessage(botToken, chatId, report, 'Markdown', undefined, bot.id, tgUserId || undefined, chatType === 'private');
+           await sendTelegramMessage(botToken, chatId, report, 'Markdown', undefined, bot.id, tgUserId || undefined, chatType === 'private', tgUser?.firstName || tgUser?.username || 'User', t);
         }
 
         return NextResponse.json({ ok: true });
@@ -305,7 +309,7 @@ export async function POST(request: Request) {
 
             const status = newQuantity <= pr.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
             const msg = `✅ ${t.operation_success}\n📱 ${t.product}: *${pr.name}*\n📈 ${t.income}: *${actualQty}* ${fUnit(pr.unit)}\n📦 ${t.newBalance}: *${newQuantity}* ${fUnit(pr.unit)}\n${status}`;
-            await sendTelegramMessage(botToken, chatId, msg, 'Markdown', undefined, bot.id, tgUserId || undefined, chatType === 'private');
+            await sendTelegramMessage(botToken, chatId, msg, 'Markdown', undefined, bot.id, tgUserId || undefined, chatType === 'private', tgUser?.firstName || tgUser?.username || 'User', t);
         }
         return NextResponse.json({ ok: true })
       }
@@ -337,13 +341,28 @@ export async function POST(request: Request) {
                 });
                 const status = newQuantity <= pr.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
                 const msg = `✅ ${t.operation_success}\n📱 ${t.product}: *${pr.name}*\n📉 ${t.deduct}: *${qty}* ${fUnit(pr.unit)}\n👤 ${t.who_to}: *${noteText}*\n📦 ${t.newBalance}: *${newQuantity}* ${fUnit(pr.unit)}\n${status}`;
-                await sendTelegramMessage(botToken, chatId, msg, 'Markdown', undefined, bot.id, tgUserId || undefined, chatType === 'private');
+                await sendTelegramMessage(botToken, chatId, msg, 'Markdown', undefined, bot.id, tgUserId || undefined, chatType === 'private', tgUser?.firstName || tgUser?.username || 'User', t);
             }
             return NextResponse.json({ ok: true });
         }
     }
 
     if (!text) return NextResponse.json({ ok: true });
+    
+    // --- GROUP RESTRICTION CHECK ---
+    let canProcessText = false;
+    let matchedGroup: any = null;
+    if (chatType === 'group' || chatType === 'supergroup') {
+       matchedGroup = bot.groups.find((g: any) => String(g.chatId) === String(chatId));
+       if (!matchedGroup || !matchedGroup.autoReply) {
+          const rejectMsg = t.group_restricted.replace('{bot}', bot.username || 'bot');
+          await sendTelegramMessage(botToken, chatId, rejectMsg, 'Markdown', undefined, bot.id, tgUserId || undefined);
+          return NextResponse.json({ ok: true });
+       }
+       canProcessText = true;
+    } else {
+       canProcessText = true;
+    }
 
     if (text === '/start' || text === '/help' || text === '/cheking' || text === '/sklad' || text.startsWith('/')) {
       const commandName = text.replace('/', '').split('@')[0];
@@ -427,19 +446,6 @@ export async function POST(request: Request) {
        return NextResponse.json({ ok: true })
     }
 
-    let canProcessText = false;
-    let matchedGroup: any = null;
-    if (chatType === 'group' || chatType === 'supergroup') {
-       matchedGroup = bot.groups.find((g: any) => String(g.chatId) === String(chatId));
-       if (!matchedGroup || !matchedGroup.autoReply) {
-          const rejectMsg = t.group_restricted.replace('{bot}', bot.username || 'bot');
-          await sendTelegramMessage(botToken, chatId, rejectMsg, 'Markdown', undefined, bot.id, tgUserId || undefined);
-          return NextResponse.json({ ok: true });
-       }
-       canProcessText = true;
-    } else {
-       canProcessText = true;
-    }
 
     if (canProcessText && !text.startsWith('/')) {
         const numMatch = text.match(/(\d+)/);
@@ -476,7 +482,7 @@ export async function POST(request: Request) {
 
                const status = newQuantity <= product.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
                const msg = `✅ *${t.autoDeduct}:*\n📱 ${t.product}: *${product.name}*\n📉 ${t.deduct}: *${actualDeduct}* ${product.unit}\n📦 ${t.newBalance}: *${newQuantity}* ${product.unit}\n${status}`;
-               await sendTelegramMessage(botToken, chatId, msg, 'Markdown', undefined, bot.id, tgUserId || undefined);
+               await sendTelegramMessage(botToken, chatId, msg, 'Markdown', undefined, bot.id, tgUserId || undefined, chatType === 'private', tgUser?.firstName || tgUser?.username || 'User', t);
             } else if (found.length > 1 && qtyToSubtract > 0) {
                const buttons = found.slice(0, 8).map((p: any) => [{ text: `${p.name} (${t.balance}: ${p.quantity})`, callback_data: `act_out_${qtyToSubtract}_${p.id}` }]);
                await sendTelegramMessage(botToken, chatId, `*${t.multiple_products_found}*`, 'Markdown', { inline_keyboard: buttons }, bot.id, tgUserId || undefined);
@@ -497,7 +503,7 @@ export async function POST(request: Request) {
   }
 }
 
-async function sendTelegramMessage(token: string, chatId: number, text: string, parseMode?: string, replyMarkup?: any, botId?: string, tgUserId?: string, broadcastToGroups?: boolean) {
+async function sendTelegramMessage(token: string, chatId: number, text: string, parseMode?: string, replyMarkup?: any, botId?: string, tgUserId?: string, broadcastToGroups?: boolean, senderName?: string, tContext?: any) {
   try {
     const payload: any = { chat_id: chatId, text: text || "Xatolik..." };
     if (parseMode) payload.parse_mode = parseMode;
@@ -517,13 +523,16 @@ async function sendTelegramMessage(token: string, chatId: number, text: string, 
           include: { groups: { where: { isActive: true } } }
        });
        if (botWithGroups && botWithGroups.groups.length > 0) {
+          const actionLabel = tContext?.action_by || 'Amaliyotchi';
+          const broadcastText = senderName ? `👤 *${actionLabel}: ${senderName}*\n\n${text}` : text;
+          
           for (const group of botWithGroups.groups) {
              if (String(group.chatId) === String(chatId)) continue; // SKIP CURRENT
              
              await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: group.chatId, text: text, parse_mode: parseMode })
+                body: JSON.stringify({ chat_id: group.chatId, text: broadcastText, parse_mode: parseMode })
              }).catch(() => {});
           }
        }

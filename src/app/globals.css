@@ -244,6 +244,16 @@ img {
   height: 40px;
   padding: 0;
   border-radius: var(--radius-md);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.btn-icon:hover {
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--primary-400);
 }
 
 /* ======= CARDS ======= */

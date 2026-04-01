@@ -275,12 +275,26 @@ export async function POST(request: Request) {
         const pr = allProducts.find((p: any) => p.id === prId);
         if (pr) {
             const actualQty = type === 'OUT' ? Math.min(pr.quantity, qty) : qty;
-            const newQuantity = type === 'OUT' ? pr.quantity - actualQty : pr.quantity + actualQty;
+            if (type === 'OUT') {
+               const replyMsg = `📉 ${t.deduct}: *${actualQty}* ${fUnit(pr.unit)}\n📦 ${t.product}: *${pr.name}*\n\n👇 ${t.who_to_prompt}\n\n💬 ${t.code}: OUT-${actualQty}-${pr.id}`;
+               
+               // Use reply_markup with ForceReply and selective: true
+               const replyMarkup = {
+                 force_reply: true,
+                 selective: true,
+                 input_field_placeholder: t.who_to_prompt
+               };
+
+               await sendTelegramMessage(botToken, chatId, replyMsg, 'Markdown', replyMarkup, bot.id, tgUserId || undefined);
+               return NextResponse.json({ ok: true });
+            }
+
+            const newQuantity = pr.quantity + actualQty; // IN only
 
             await prisma.product.update({ where: { id: pr.id }, data: { quantity: newQuantity } });
             await prisma.transaction.create({
               data: {
-                type: type,
+                type: 'IN',
                 quantity: actualQty,
                 note: `Telegram Menyu orqali amaliyot.`,
                 source: chatType === 'private' ? 'BOT' : 'GROUP',
@@ -292,12 +306,11 @@ export async function POST(request: Request) {
               }
             });
 
-            const typeLabel = type === 'OUT' ? t.deduct : t.income;
-            const typeEmoji = type === 'OUT' ? '📉' : '📈';
             const status = newQuantity <= pr.minQuantity ? `🔴 ${t.statusLow}` : `🟢 ${t.statusOk}`;
-            const msg = `✅ ${t.operation_success}\n📱 ${t.product}: *${pr.name}*\n${typeEmoji} ${typeLabel}: *${actualQty}* ${fUnit(pr.unit)}\n📦 ${t.newBalance}: *${newQuantity}* ${fUnit(pr.unit)}\n${status}`;
+            const msg = `✅ ${t.operation_success}\n📱 ${t.product}: *${pr.name}*\n📈 ${t.income}: *${actualQty}* ${fUnit(pr.unit)}\n📦 ${t.newBalance}: *${newQuantity}* ${fUnit(pr.unit)}\n${status}`;
             await sendTelegramMessage(botToken, chatId, msg, 'Markdown', undefined, bot.id, tgUserId || undefined);
             return NextResponse.json({ ok: true });
+
 
         }
         return NextResponse.json({ ok: true })
